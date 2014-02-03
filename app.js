@@ -1,56 +1,50 @@
 document.addEventListener('DOMContentLoaded', function(){
-  RedditAPI.getListings(function(movieList){
-    App.movieData = movieList
-    $(App.movieData).map(function(i,v){
-
-      setTimeout(function(){
-
-        RottenAPI.getReview(v,function(data){
-          console.log(data)
-          v.ratings = data.movies[0].ratings
-          return v
-        })
-
-      },i*500)
-
-    })
-  })
-  //App.init()
+  App.init()
 })
 
-App = {
-  movieData: [],
-  moar: [],
-  query:"Gone with the Wind",
+var App = {
+  movieData: [], //e.g. {title: "Boyz n the Hood", year: 1991, audience_rating: 93, critics_rating: 96}
   init: function(){
-    $.ajax({
-      url: RottenAPI.buildUrl(this.query),
-      dataType: "jsonp",
-      success: searchCallback
-    })
+    this.getMoviesAndRatings()
   },
-  searchCallback: function(data) {
-    alert("made it")
-    $(document.body).append('Found ' + data.total + ' results for ' + this.query);
-    var movies = data.movies;
-    $.each(movies, function(index, movie) {
-      console.log(movie.title)
-      $(document.body).append('<h1>' + movie.title + '</h1>');
-      $(document.body).append('<img src="' + movie.posters.thumbnail + '" />');
-    });
+  getMoviesAndRatings: function(){
+    RedditAPI.getListings(function(movieList){
+      App.movieData = movieList
+      $(App.movieData).map(function(i,v){
+        RottenAPI.findRatings(i,v)
+      })
+    })
   }
 }
 
 var RottenAPI = {
   base_url: "http://api.rottentomatoes.com/api/public/v1.0",
-  getReview: function(movie,callback){
-    //given {title:"Fist of the North Star", year:1986}
-    //return rating
+  findRatings: function(i,movie){
+    return this.waitPlease(i,movie,this.getAndParseReviews)
+  },
+  waitPlease: function(i,movie,callback){
+    setTimeout(function(){
+      return callback(movie)
+    },i*200)
+  },
+  getAndParseReviews: function(movie){
+    RottenAPI.getReviews(movie,function(data){
+      return RottenAPI.filteredResults(movie,data)
+    })
+  },
+  getReviews: function(movie,callback){
     $.ajax({
       url: RottenAPI.buildUrl(movie.title),
       dataType: "jsonp",
       success: callback
     })
+  },
+  filteredResults: function(movie,data){
+    if (data){
+      movie.audience_rating = data.movies[0].ratings.audience_score
+      movie.critics_rating = data.movies[0].ratings.critics_score
+    }
+    return movie
   },
   buildUrl: function(query){
     request_url = this.base_url
@@ -58,12 +52,11 @@ var RottenAPI = {
     request_url += "q=" + encodeURI(query)
     request_url += "&page_limit=5&page=1&apikey="
     request_url += Secret.rotten_key
-    console.log(encodeURI)
     return request_url
   }
 }
 
-RedditAPI = {
+var RedditAPI = {
   movieData: [],
   baseUrl: "http://www.reddit.com/r/fullmoviesonyoutube.json",
   getListings: function(callback){
