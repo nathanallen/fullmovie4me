@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', function(){
-  RedditAPI.getListings()
+  RedditAPI.getListings(function(titles){
+    console.log(titles)
+  })
   //App.init()
 })
 
@@ -26,11 +28,9 @@ var App = {
 
 var RottenAPI = {
   base_url: "http://api.rottentomatoes.com/api/public/v1.0",
-  findMatch: function(title){
-
-  },
-  parseTitle: function(title){
-
+  getReviews: function(){
+    //given {title:"Fist of the North Star", year:1986}
+    //return rating
   },
   buildQuery: function(query){
     //"Who Killed the Electric Car (1909)" --> "%22Who%20Killed%20the%20Electric%20Car%22"
@@ -48,14 +48,24 @@ var RottenAPI = {
 }
 
 RedditAPI = {
+  movieData: [],
   baseUrl: "http://www.reddit.com/r/fullmoviesonyoutube.json",
-  data: {},
   getListings: function(callback){
-    $.get(this.baseUrl).done(function(data){
-      $(data.children).each(function(i,v){
-        RedditAPI.data[i] = v.data.media
+    $.get(this.baseUrl).done(function(response){
+      $(response.data.children).each(function(){
+        var item = RedditAPI.parseTitle(this.data.title)
+        RedditAPI.movieData.push(item)
       })
+      callback(RedditAPI.movieData)
     })
+  },
+  //given "Fist of the North Star (1986) [360p]"
+  //returns {title:"Fist of the North Star", year:1986}
+  parseTitle: function(title){
+    var endOfTitle = title.search(/\s\(\d{4}\)/)
+    var y = parseInt(title.substr(endOfTitle+2,4))
+    var t = title.substr(0,endOfTitle)
+    return {title: t, year: y}
   }
 }
 
