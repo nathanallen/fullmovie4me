@@ -1,17 +1,32 @@
 document.addEventListener('DOMContentLoaded', function(){
-  RedditAPI.getListings(function(titles){
-    console.log(titles)
+  RedditAPI.getListings(function(movieList){
+    App.movieData = movieList
+    $(App.movieData).map(function(i,v){
+
+      setTimeout(function(){
+
+        RottenAPI.getReview(v,function(data){
+          console.log(data)
+          v.ratings = data.movies[0].ratings
+          return v
+        })
+
+      },i*500)
+
+    })
   })
   //App.init()
 })
 
-var App = {
+App = {
+  movieData: [],
+  moar: [],
   query:"Gone with the Wind",
   init: function(){
     $.ajax({
       url: RottenAPI.buildUrl(this.query),
       dataType: "jsonp",
-      success: App.searchCallback
+      success: searchCallback
     })
   },
   searchCallback: function(data) {
@@ -28,21 +43,22 @@ var App = {
 
 var RottenAPI = {
   base_url: "http://api.rottentomatoes.com/api/public/v1.0",
-  getReviews: function(){
+  getReview: function(movie,callback){
     //given {title:"Fist of the North Star", year:1986}
     //return rating
-  },
-  buildQuery: function(query){
-    //"Who Killed the Electric Car (1909)" --> "%22Who%20Killed%20the%20Electric%20Car%22"
-    return "q=" + encodeURI(query)
-    //"q=%22" + query.replace(/ /g, "%20") + "%22"
+    $.ajax({
+      url: RottenAPI.buildUrl(movie.title),
+      dataType: "jsonp",
+      success: callback
+    })
   },
   buildUrl: function(query){
     request_url = this.base_url
     request_url += "/movies.json?"
-    request_url += this.buildQuery(query)
+    request_url += "q=" + encodeURI(query)
     request_url += "&page_limit=5&page=1&apikey="
     request_url += Secret.rotten_key
+    console.log(encodeURI)
     return request_url
   }
 }
@@ -53,8 +69,8 @@ RedditAPI = {
   getListings: function(callback){
     $.get(this.baseUrl).done(function(response){
       $(response.data.children).each(function(){
-        var item = RedditAPI.parseTitle(this.data.title)
-        RedditAPI.movieData.push(item)
+        var listing = RedditAPI.parseTitle(this.data.title)
+        RedditAPI.movieData.push(listing)
       })
       callback(RedditAPI.movieData)
     })
