@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
-  App.init()
+  //App.init() 
+  ViewControl.addMovies(SampleData.movieData)
 })
 
 var App = {
@@ -14,6 +15,20 @@ var App = {
         RottenAPI.findRatings(i,v)
       })
     })
+  }
+}
+
+var ViewControl = {
+  addMovies: function(movieData){
+    Array.prototype.forEach.call(movieData,function(v,i){
+      ViewControl.addMovie(v)
+    })
+  },
+  addMovie: function(movie){
+    var target = document.body.children[0]
+    target.insertAdjacentHTML('afterend',"<hr>")
+    target.insertAdjacentHTML('afterend',"<p> Ratings: " + movie.audience_rating + " / " + movie.critics_rating + "</p>")
+    target.insertAdjacentHTML('afterend',"<strong>" + movie.title + "</strong> " + movie.year + "<br>")
   }
 }
 
@@ -68,9 +83,7 @@ var RedditAPI = {
       callback(RedditAPI.movieData)
     })
   },
-  //given "Fist of the North Star (1986) [360p]"
-  //returns {title:"Fist of the North Star", year:1986}
-  parseTitle: function(title){
+  parseTitle: function(title){   //e.g. "Fist of the North Star (1986) [360p]"
     var endOfTitle = title.search(/\s\(\d{4}\)/)
     var y = parseInt(title.substr(endOfTitle+2,4))
     var t = title.substr(0,endOfTitle)
@@ -78,19 +91,5 @@ var RedditAPI = {
   }
 }
 
-
-// $ = {
-//   getJSON: function(api_url){
-//   request = new XMLHttpRequest
-//   request.open('GET', api_url, true)
-//   request.send()
-
-//     request.onload = function() {
-//       data = JSON.parse(this.response)
-//       alert(data)
-//       return data
-//     }
-//   }
-// }
 
 
