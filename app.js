@@ -19,16 +19,24 @@ var App = {
 }
 
 var ViewControl = {
+  target: document.body.children[0],
   addMovies: function(movieData){
-    Array.prototype.forEach.call(movieData,function(v,i){
-      ViewControl.addMovie(v)
+    Array.prototype.forEach.call(movieData,function(movie){
+      ViewControl.buildAndAppendMovie(movie)
     })
   },
-  addMovie: function(movie){
-    var target = document.body.children[0]
-    target.insertAdjacentHTML('afterend',"<hr>")
-    target.insertAdjacentHTML('afterend',"<p> Ratings: " + movie.audience_rating + " / " + movie.critics_rating + "</p>")
-    target.insertAdjacentHTML('afterend',"<strong>" + movie.title + "</strong> " + movie.year + "<br>")
+  buildAndAppendMovie: function(movie){
+    htmlString = ("<div class=\"movieListing\">")
+    htmlString += ("<strong>")
+    htmlString += ("<a href=\"" + movie.youtube_url + "\">") + movie.title + "</a>" 
+    htmlString += ("</strong> ")
+    htmlString += (movie.year + "<br>")
+    htmlString += ("Ratings: " + (movie.audience_rating || "none") + " / " + (movie.critics_rating || "none"))
+    htmlString += ("</div>")
+    this.addMovie(htmlString)
+  },
+  addMovie: function(htmlString){
+    this.target.insertAdjacentHTML('afterend', htmlString)
   }
 }
 
@@ -77,11 +85,16 @@ var RedditAPI = {
   getListings: function(callback){
     $.get(this.baseUrl).done(function(response){
       $(response.data.children).each(function(){
-        var listing = RedditAPI.parseTitle(this.data.title)
-        RedditAPI.movieData.push(listing)
+        var listingData = RedditAPI.cherryPick(this.data)
+        RedditAPI.movieData.push(listingData)
       })
       callback(RedditAPI.movieData)
     })
+  },
+  cherryPick: function(json){
+    var listingData = this.parseTitle(json.title)
+    listingData.youtube_url = json.url
+    return listingData
   },
   parseTitle: function(title){   //e.g. "Fist of the North Star (1986) [360p]"
     var endOfTitle = title.search(/\s\(\d{4}\)/)
