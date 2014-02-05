@@ -1,29 +1,37 @@
 document.addEventListener('DOMContentLoaded', function(){
-  //App.init() 
-  ViewControl.addMovies(SampleData.movieData)
+  App.init() 
 })
 
 var App = {
-  movieData: [], //e.g. {title: "Boyz n the Hood", year: 1991, audience_rating: 93, critics_rating: 96}
+  movieData: [], 
   init: function(){
+    this.viewControl = ViewControl
+    this.rottenAPI = RottenAPI
+    this.redditAPI = RedditAPI
+    //this.fullMovieListings = []
     this.getMoviesAndRatings()
   },
   getMoviesAndRatings: function(){
-    RedditAPI.getListings(function(movieList){
-      App.movieData = movieList
-      $(App.movieData).map(function(i,v){
-        RottenAPI.findRatings(i,v)
-      })
+    this.redditAPI.getMovies(function(movieList){
+      App.rottenAPI.getRatings(movieList, 'combineResults')
     })
-  }
+  },
+  combineResults: function(movie,data){
+    if (data.movies[0]){
+      movie.audience_rating = data.movies[0].ratings.audience_score
+      movie.critics_rating = data.movies[0].ratings.critics_score
+    }
+    //this.fullMovieListings.push(movie)
+    this.viewControl.buildAndAppendMovie(movie)
+  },
 }
 
 var ViewControl = {
   target: document.body.children[0],
   addMovies: function(movieData){
-    Array.prototype.forEach.call(movieData,function(movie){
+    movieData.forEach(
       ViewControl.buildAndAppendMovie(movie)
-    })
+    )
   },
   buildAndAppendMovie: function(movie){
     htmlString = ("<div class=\"movieListing\">")
@@ -31,7 +39,11 @@ var ViewControl = {
     htmlString += ("<a href=\"" + movie.youtube_url + "\">") + movie.title + "</a>" 
     htmlString += ("</strong> ")
     htmlString += (movie.year + "<br>")
-    htmlString += ("Ratings: " + (movie.audience_rating || "none") + " / " + (movie.critics_rating || "none"))
+    if (movie.audience_rating & movie.critics_rating){
+      htmlString += ("Ratings: " + (movie.audience_rating || "none") + " / " + (movie.critics_rating || "none"))
+    } else {
+      htmlString += ("No Reviews")
+    }
     htmlString += ("</div>")
     this.addMovie(htmlString)
   },
@@ -42,32 +54,25 @@ var ViewControl = {
 
 var RottenAPI = {
   base_url: "http://api.rottentomatoes.com/api/public/v1.0",
-  findRatings: function(i,movie){
-    return this.waitPlease(i,movie,this.getAndParseReviews)
-  },
-  waitPlease: function(i,movie,callback){
-    setTimeout(function(){
-      return callback(movie)
-    },i*200)
-  },
-  getAndParseReviews: function(movie){
-    RottenAPI.getReviews(movie,function(data){
-      return RottenAPI.filteredResults(movie,data)
+  getRatings: function(movieList,callbackStr){
+    this.callbackStr = callbackStr
+    movieList.forEach(function(movie,i){
+      setTimeout(function(){
+        RottenAPI.getAndParseRatings(movie)
+      },i*200)
     })
   },
-  getReviews: function(movie,callback){
+  getAndParseRatings: function(movie){
+    RottenAPI.getRatingsJSON(movie.title,function(data){
+      App[RottenAPI.callbackStr](movie,data)
+    })
+  },
+  getRatingsJSON: function(title,callback){
     $.ajax({
-      url: RottenAPI.buildUrl(movie.title),
+      url: RottenAPI.buildUrl(title),
       dataType: "jsonp",
       success: callback
     })
-  },
-  filteredResults: function(movie,data){
-    if (data){
-      movie.audience_rating = data.movies[0].ratings.audience_score
-      movie.critics_rating = data.movies[0].ratings.critics_score
-    }
-    return movie
   },
   buildUrl: function(query){
     request_url = this.base_url
@@ -82,11 +87,13 @@ var RottenAPI = {
 var RedditAPI = {
   movieData: [],
   baseUrl: "http://www.reddit.com/r/fullmoviesonyoutube.json",
-  getListings: function(callback){
+  getMovies: function(callback){
     $.get(this.baseUrl).done(function(response){
       $(response.data.children).each(function(){
         var listingData = RedditAPI.cherryPick(this.data)
-        RedditAPI.movieData.push(listingData)
+        if (!(listingData.title == "" & listingData.year == NaN)){
+          RedditAPI.movieData.push(listingData)
+        }
       })
       callback(RedditAPI.movieData)
     })
