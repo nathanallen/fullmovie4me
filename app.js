@@ -22,30 +22,28 @@ var App = {
       movie.critics_rating = data.movies[0].ratings.critics_score
     }
     //this.fullMovieListings.push(movie)
-    this.viewControl.buildAndAppendMovie(movie)
+    this.viewControl.renderMovieListing(movie)
   },
 }
 
 var ViewControl = {
   target: document.body.children[0],
   addMovies: function(movieData){
-    movieData.forEach(
-      ViewControl.buildAndAppendMovie(movie)
-    )
+    movieData.forEach(this.renderMovieListing)
   },
-  buildAndAppendMovie: function(movie){
-    htmlString = ("<div class=\"movieListing\">")
+  renderMovieListing: function(movie){
+3    htmlString = ("<div class=\"movieListing\">")
     htmlString += ("<strong>")
     htmlString += ("<a href=\"" + movie.youtube_url + "\">") + movie.title + "</a>" 
     htmlString += ("</strong> ")
     htmlString += (movie.year + "<br>")
     if (movie.audience_rating & movie.critics_rating){
-      htmlString += ("Ratings: " + (movie.audience_rating || "none") + " / " + (movie.critics_rating || "none"))
+      htmlString += ("Audience Rating: " + (movie.audience_rating || "none") + ", Critics:" + (movie.critics_rating || "none"))
     } else {
       htmlString += ("No Reviews")
     }
     htmlString += ("</div>")
-    this.addMovie(htmlString)
+    ViewControl.addMovie(htmlString)
   },
   addMovie: function(htmlString){
     this.target.insertAdjacentHTML('afterend', htmlString)
@@ -78,8 +76,8 @@ var RottenAPI = {
     request_url = this.base_url
     request_url += "/movies.json?"
     request_url += "q=" + encodeURI(query)
-    request_url += "&page_limit=5&page=1&apikey="
-    request_url += Secret.rotten_key
+    request_url += "&page_limit=5&page=1"
+    request_url += "&apikey=" + Secret.rotten_key
     return request_url
   }
 }
