@@ -1,15 +1,15 @@
 document.addEventListener('DOMContentLoaded', function(){
-  App.init() 
+  App.init()
+  App.viewControl.renderMovies(SampleData.movieData) // for testing
 })
 
-var App = {
-  movieData: [], 
+App = { // global for testing
   init: function(){
     this.viewControl = ViewControl
     this.rottenAPI = RottenAPI
     this.redditAPI = RedditAPI
-    //this.fullMovieListings = []
-    this.getMoviesAndRatings()
+    this.fullMovieListings = SampleData.movieData || []
+    //this.getMoviesAndRatings() // for testing
   },
   getMoviesAndRatings: function(){
     this.redditAPI.getMovies(function(movieList){
@@ -21,32 +21,44 @@ var App = {
       movie.audience_rating = data.movies[0].ratings.audience_score
       movie.critics_rating = data.movies[0].ratings.critics_score
     }
-    //this.fullMovieListings.push(movie)
+    this.fullMovieListings.push(movie)
     this.viewControl.renderMovieListing(movie)
   },
+  sortByAudienceRating: function(){
+    this.fullMovieListings.sort(function(a,b){
+      if (!(a.audience_rating)) return -1
+      if (!(b.audience_rating)) return 0
+      return a.audience_rating - b.audience_rating
+    })
+    this.viewControl.clearListings()
+    this.viewControl.renderMovies(this.fullMovieListings)
+  }
 }
 
 var ViewControl = {
   target: document.body.children[0],
-  addMovies: function(movieData){
+  renderMovies: function(movieData){
     movieData.forEach(this.renderMovieListing)
   },
   renderMovieListing: function(movie){
-3    htmlString = ("<div class=\"movieListing\">")
+    htmlString = ("<div class=\"movieListing\">")
     htmlString += ("<strong>")
     htmlString += ("<a href=\"" + movie.youtube_url + "\">") + movie.title + "</a>" 
     htmlString += ("</strong> ")
     htmlString += (movie.year + "<br>")
     if (movie.audience_rating & movie.critics_rating){
-      htmlString += ("Audience Rating: " + (movie.audience_rating || "none") + ", Critics:" + (movie.critics_rating || "none"))
+      htmlString += ("Audience Rating: " + (movie.audience_rating || "none") + ", Critics: " + (movie.critics_rating || "none"))
     } else {
       htmlString += ("No Reviews")
     }
     htmlString += ("</div>")
-    ViewControl.addMovie(htmlString)
+    ViewControl.insertMovieListing(htmlString)
   },
-  addMovie: function(htmlString){
+  insertMovieListing: function(htmlString){
     this.target.insertAdjacentHTML('afterend', htmlString)
+  },
+  clearListings: function(){
+    // impliment this
   }
 }
 
