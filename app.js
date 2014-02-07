@@ -1,15 +1,15 @@
 document.addEventListener('DOMContentLoaded', function(){
   App.init()
-  App.viewControl.renderMovies(SampleData.movieData) // for testing
 })
 
-App = { // global for testing
+var App = {
   init: function(){
     this.viewControl = ViewControl
     this.rottenAPI = RottenAPI
     this.redditAPI = RedditAPI
-    this.fullMovieListings = SampleData.movieData || []
-    //this.getMoviesAndRatings() // for testing
+    this.fullMovieListings = []
+    this.getMoviesAndRatings()
+    this.createButtonListeners()
   },
   getMoviesAndRatings: function(){
     this.redditAPI.getMovies(function(movieList){
@@ -24,6 +24,12 @@ App = { // global for testing
     this.fullMovieListings.push(movie)
     this.viewControl.renderMovieListing(movie)
   },
+  createButtonListeners: function(){
+    var that = this;
+    $('.sortbyratings').click(function(e){
+      that.sortByAudienceRating()
+    })
+  },
   sortByAudienceRating: function(){
     this.fullMovieListings.sort(function(a,b){
       if (!(a.audience_rating)) return -1
@@ -36,7 +42,7 @@ App = { // global for testing
 }
 
 var ViewControl = {
-  target: document.body.children[0],
+  target: $('.listings'),
   renderMovies: function(movieData){
     movieData.forEach(this.renderMovieListing)
   },
@@ -55,10 +61,10 @@ var ViewControl = {
     ViewControl.insertMovieListing(htmlString)
   },
   insertMovieListing: function(htmlString){
-    this.target.insertAdjacentHTML('afterend', htmlString)
+    this.target.prepend(htmlString)
   },
   clearListings: function(){
-    // impliment this
+    $('.movieListing').each(function(_,el){$(el).remove()})
   }
 }
 
