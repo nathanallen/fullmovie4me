@@ -27,6 +27,7 @@ var App = {
       movie.critics_rating = data.movies[0].ratings.critics_score
     }
     this.fullMovieListings.push(movie)
+    this.viewControl.removeSpinner() // awkward place for this
     this.viewControl.renderMovieListing(movie)
   },
   createButtonListeners: function(){
@@ -73,6 +74,9 @@ var ViewControl = {
   },
   clearListings: function(){
     $('.movieListing').each(function(_,el){$(el).remove()})
+  },
+  removeSpinner: function(){
+    $('.spinner').remove()
   }
 }
 
