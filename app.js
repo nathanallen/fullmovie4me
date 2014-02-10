@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function(){
-  App.init()
+  //App.init()
 })
 
 var App = {
@@ -29,12 +29,24 @@ var App = {
     $('.sortbyratings').click(function(e){
       that.sortByAudienceRating()
     })
+    $('.sortbyyear').click(function(e){
+      that.sortByYear()
+    })
   },
   sortByAudienceRating: function(){
     this.fullMovieListings.sort(function(a,b){
       if (!(a.audience_rating)) return -1
       if (!(b.audience_rating)) return 0
       return a.audience_rating - b.audience_rating
+    })
+    this.viewControl.clearListings()
+    this.viewControl.renderMovies(this.fullMovieListings)
+  },
+  sortByYear: function(){
+    this.fullMovieListings.sort(function(a,b){
+      if (!(a.year)) return -1
+      if (!(b.year)) return 0
+      return a.year - b.year
     })
     this.viewControl.clearListings()
     this.viewControl.renderMovies(this.fullMovieListings)
