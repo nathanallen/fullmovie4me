@@ -1,14 +1,19 @@
 document.addEventListener('DOMContentLoaded', function(){
   App.init()
+  //App.init(SampleData.movieData) //development
 })
 
 var App = {
-  init: function(){
+  init: function(testData){
     this.viewControl = ViewControl
     this.rottenAPI = RottenAPI
     this.redditAPI = RedditAPI
-    this.fullMovieListings = []
-    this.getMoviesAndRatings()
+    this.fullMovieListings = testData || []   //development
+    if (testData){
+      this.viewControl.renderMovies(testData) //development
+    } else {
+      this.getMoviesAndRatings()
+    }
     this.createButtonListeners()
   },
   getMoviesAndRatings: function(){
