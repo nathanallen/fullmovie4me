@@ -18,7 +18,7 @@ var App = {
   },
   getMoviesAndRatings: function(){
     this.redditAPI.getMovies(function(movieList){
-      App.rottenAPI.getRatings(movieList, 'combineResults')
+      App.rottenAPI.getRatings(movieList,'combineResults',App)
     })
   },
   combineResults: function(movie,data){
@@ -86,17 +86,17 @@ var ViewControl = {
 
 var RottenAPI = {
   base_url: "http://api.rottentomatoes.com/api/public/v1.0",
-  getRatings: function(movieList,callbackStr){
-    this.callbackStr = callbackStr
+  getRatings: function(movieList,callback_str,callback_obj){
+    this.callback_str = callback_str
     movieList.forEach(function(movie,i){
       setTimeout(function(){
-        RottenAPI.getAndParseRatings(movie)
+        RottenAPI.getAndParseRatings(movie,callback_str,callback_obj)
       },i*200)
     })
   },
-  getAndParseRatings: function(movie){
+  getAndParseRatings: function(movie,callback_str,callback_obj){
     RottenAPI.getRatingsJSON(movie.title,function(data){
-      App[RottenAPI.callbackStr](movie,data)
+      callback_obj[callback_str](movie,data)
     })
   },
   getRatingsJSON: function(title,callback){
