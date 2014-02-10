@@ -27,7 +27,7 @@ var App = {
       movie.critics_rating = data.movies[0].ratings.critics_score
     }
     this.fullMovieListings.push(movie)
-    this.viewControl.removeSpinner() // awkward place for this
+    this.viewControl.removeSpinner() // only happens the first time
     this.viewControl.renderMovieListing(movie)
   },
   createButtonListeners: function(){
@@ -52,6 +52,7 @@ var App = {
 
 var ViewControl = {
   target: $('.listings'),
+  spinner: $('.spinner'),
   renderMovies: function(movieData){
     movieData.forEach(this.renderMovieListing)
   },
@@ -76,7 +77,10 @@ var ViewControl = {
     $('.movieListing').each(function(_,el){$(el).remove()})
   },
   removeSpinner: function(){
-    $('.spinner').remove()
+    if (this.spinner){
+      this.spinner.remove()
+      this.spinner = undefined
+    }
   }
 }
 
