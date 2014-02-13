@@ -31,14 +31,14 @@ var App = {
     this.viewControl.renderMovieListing(movie)
   },
   createButtonListeners: function(){
-    $('.sortby').click(App.initiateSort)
+    $('.sortby').click(this.initiateSort)
   },
   initiateSort: function(e){
-    target = e.target
-    var field_name = target.dataset.sort_by
-    var direction = target.dataset.sort_direction
-    target.dataset.sort_direction = (direction === 'desc') ? 'asc' : 'desc'
+    var button = e.target,
+        field_name = button.dataset.sort_by,
+        direction = button.dataset.sort_direction || 'asc'
     App.sortBy(field_name, direction)
+    App.viewControl.flipArrow(button, direction)
   },
   sortBy: function(field_name, direction){
     this.fullMovieListings.sort(function(a,b){
@@ -49,15 +49,15 @@ var App = {
     if (direction === 'desc'){
       this.fullMovieListings.reverse()
     }
-    this.viewControl.clearListings()
     this.viewControl.renderMovies(this.fullMovieListings)
-  }
+  },
 }
 
 var ViewControl = {
   target: $('.listings'),
   spinner: $('.spinner'),
   renderMovies: function(movieData){
+    this.clearListings()
     movieData.forEach(this.renderMovieListing)
   },
   renderMovieListing: function(movie){
@@ -85,7 +85,11 @@ var ViewControl = {
       this.spinner.remove()
       this.spinner = undefined
     }
-  }
+  },
+  flipArrow: function(button, direction){
+    button.dataset.sort_direction = (direction === 'desc') ? 'asc' : 'desc'
+    $(button).find('span').removeClass().addClass('arrow ' + direction)
+  },
 }
 
 var RottenAPI = {

@@ -30,3 +30,23 @@ button {
   display: block;
   margin: 0 auto;
 }
+
+
+.arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  position: relative;
+  left: 1px;
+}
+
+.arrow.asc {
+  border-top: 5px solid black;
+  top: 10px;
+}
+
+.arrow.desc {
+  border-bottom: 5px solid black;
+  bottom: 9px;
+}
