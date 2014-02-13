@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
-  App.init()
-  //App.init(SampleData.movieData) //development
+  //App.init()
+  App.init(SampleData.movieData) //development
 })
 
 var App = {
@@ -33,18 +33,26 @@ var App = {
   createButtonListeners: function(){
     var that = this;
     $('.sortbyratings').click(function(e){
-      that.sortBy('audience_rating')
+      var direction = e.target.dataset.sort
+      that.sortBy('audience_rating', direction)
+      e.target.dataset.sort = (direction === 'asc') ? 'des' : 'asc'
     })
     $('.sortbyyear').click(function(e){
-      that.sortBy('year') 
+      var direction = e.target.dataset.sort
+      that.sortBy('year', direction)
+      e.target.dataset.sort = (direction === 'asc') ? 'des' : 'asc'
     })
   },
-  sortBy: function(attribute_str){
+  sortBy: function(attribute_str, sort_direction){
     this.fullMovieListings.sort(function(a,b){
       if (!(a[attribute_str])) return -1
       if (!(b[attribute_str])) return 1
       return a[attribute_str] - b[attribute_str]
     })
+    sort_direction = sort_direction || 'asc'
+    if (sort_direction === 'des'){
+      this.fullMovieListings.reverse()
+    }
     this.viewControl.clearListings()
     this.viewControl.renderMovies(this.fullMovieListings)
   }
