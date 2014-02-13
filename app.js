@@ -56,6 +56,7 @@ var App = {
 var ViewControl = {
   target: $('.listings'),
   spinner: $('.spinner'),
+  buttons: $('.sortby'),
   renderMovies: function(movieData){
     this.clearListings()
     movieData.forEach(this.renderMovieListing)
@@ -87,9 +88,20 @@ var ViewControl = {
     }
   },
   flipArrow: function(button, direction){
-    button.dataset.sort_direction = (direction === 'desc') ? 'asc' : 'desc'
-    $(button).find('span').removeClass().addClass('arrow ' + direction)
-  },
+    var buttons = this.buttons
+    function resetArrows(callback){
+      buttons.each(function(_,el){
+        el.dataset.sort_direction = ''
+        $(el).find('span').removeClass()  //resets arrow class
+      })
+      callback()
+    }
+    function setActiveArrow(){
+      button.dataset.sort_direction = (direction === 'desc') ? 'asc' : 'desc'
+      $(button).find('span').addClass('arrow ' + direction)
+    }
+    resetArrows(setActiveArrow)
+  }
 }
 
 var RottenAPI = {
