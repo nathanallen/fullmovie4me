@@ -18,7 +18,7 @@ var App = {
   },
   getMoviesAndRatings: function(){
     this.redditAPI.getMovies(function(movieList){
-      App.rottenAPI.getRatings(movieList,'combineResults',App)
+      App.rottenAPI.getRatings(movieList,App,'combineResults')
     })
   },
   combineResults: function(movie,data){

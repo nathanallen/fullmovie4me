@@ -1,14 +1,13 @@
 var RottenAPI = {
   base_url: "http://api.rottentomatoes.com/api/public/v1.0",
-  getRatings: function(movieList,callback_str,callback_obj){
-    this.callback_str = callback_str
+  getRatings: function(movieList,callback_obj,callback_str){
     movieList.forEach(function(movie,i){
       setTimeout(function(){
-        RottenAPI.getAndParseRatings(movie,callback_str,callback_obj)
+        RottenAPI.getAndParseRatings(movie,callback_obj,callback_str)
       },i*200)
     })
   },
-  getAndParseRatings: function(movie,callback_str,callback_obj){
+  getAndParseRatings: function(movie,callback_obj,callback_str){
     RottenAPI.getRatingsJSON(movie.title,function(data){
       callback_obj[callback_str](movie,data)
     })
