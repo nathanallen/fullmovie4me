@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
-  //App.init()
-  App.init(SampleData.movieData) //development
+  App.init()
+  //App.init(SampleData.movieData) //development
 })
 
 var App = {
@@ -31,26 +31,22 @@ var App = {
     this.viewControl.renderMovieListing(movie)
   },
   createButtonListeners: function(){
-    var that = this;
-    $('.sortbyratings').click(function(e){
-      var direction = e.target.dataset.sort
-      that.sortBy('audience_rating', direction)
-      e.target.dataset.sort = (direction === 'asc') ? 'des' : 'asc'
-    })
-    $('.sortbyyear').click(function(e){
-      var direction = e.target.dataset.sort
-      that.sortBy('year', direction)
-      e.target.dataset.sort = (direction === 'asc') ? 'des' : 'asc'
-    })
+    $('.sortby').click(App.initiateSort)
   },
-  sortBy: function(attribute_str, sort_direction){
+  initiateSort: function(e){
+    target = e.target
+    var field_name = target.dataset.sort_by
+    var direction = target.dataset.sort_direction
+    target.dataset.sort_direction = (direction === 'desc') ? 'asc' : 'desc'
+    App.sortBy(field_name, direction)
+  },
+  sortBy: function(field_name, direction){
     this.fullMovieListings.sort(function(a,b){
-      if (!(a[attribute_str])) return -1
-      if (!(b[attribute_str])) return 1
-      return a[attribute_str] - b[attribute_str]
+      if (!(a[field_name])) return -1
+      if (!(b[field_name])) return 1
+      return a[field_name] - b[field_name]
     })
-    sort_direction = sort_direction || 'asc'
-    if (sort_direction === 'des'){
+    if (direction === 'desc'){
       this.fullMovieListings.reverse()
     }
     this.viewControl.clearListings()
