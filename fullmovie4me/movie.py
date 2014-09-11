@@ -44,17 +44,18 @@ def build_rotten_api_request_url(title):
   request_url += "&apikey=" + ROTTEN_KEY
   return request_url
 
-def query_rotten_api(title):
+def query_rotten_api(title, delay=5):
   if title == None:
     return None
+  time.sleep(delay)
   request_url = build_rotten_api_request_url(title)
   request_data = urllib2.urlopen(request_url).read()
   return json.loads(request_data)
 
-def fetch_movie_data(title, year):
+def fetch_movie_data(title, year, delay=5):
   if not title:
     return None
-  data = query_rotten_api(title)
+  data = query_rotten_api(title, delay)
   if not data:
     return None
   movies = data.get('movies', None)
@@ -82,7 +83,6 @@ def fetch_new_movies_and_ratings(overwrite=False):
       if overwrite:
         exists.key.delete()
       continue
-    time.sleep(5)
     match = fetch_movie_data(title, year)
     if not match:
       continue
