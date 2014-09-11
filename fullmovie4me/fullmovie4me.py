@@ -5,11 +5,7 @@ import webapp2, json
 
 class ApiHandler(webapp2.RequestHandler):
   def get(self):
-    print "HERE"
-    movies = movie.Movie.query().order(-movie.Movie.creation_ts).fetch(1000)
-    movies = [amovie.to_dict(exclude=['creation_ts']) for amovie in movies]
-    movies = dict([(amovie.get('title',''), amovie) for amovie in movies]).values() # dirty filter for uniques
-    movie_list = json.dumps(movies)
+    movie_list = movie.newest_movies()
     self.response.headers.add_header("Access-Control-Allow-Origin", "*")
     self.response.headers['Content-Type'] = 'application/javascript'
     self.response.out.write(movie_list)

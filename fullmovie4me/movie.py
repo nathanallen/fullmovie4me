@@ -96,8 +96,8 @@ def fetch_movie_data(title, year, delay=5):
     match = movies[0]
   return match
 
-def fetch_new_movies_and_ratings(n_pages=1, overwrite=False):
-  for movie in movie_listings(n_pages=1, n_subs=3):
+def fetch_new_movies_and_ratings(n_pages=1, n_subs=3, overwrite=False):
+  for movie in movie_listings(n_pages=n_pages, n_subs=n_subs):
     if not movie.title:
       continue
     exists = Movie.query(Movie.youtube_url == movie.youtube_url).get() # TODO: keys only req?
@@ -113,3 +113,12 @@ def fetch_new_movies_and_ratings(n_pages=1, overwrite=False):
     movie.audience_rating = ratings.get('audience_score')
     movie.critics_rating = ratings.get('critics_score')
     Movie.put(movie)
+
+def newest_movies(to_json=True):
+    #TODO: Caching
+    movies = Movie.query().order(-Movie.creation_ts).fetch(1000)
+    movies = [amovie.to_dict(exclude=['creation_ts']) for amovie in movies]
+    movies = dict([(amovie.get('title',''), amovie) for amovie in movies]).values() # dirty filter for uniques
+    if to_json:
+      return json.dumps(movies)
+    return movies

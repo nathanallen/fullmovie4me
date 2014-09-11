@@ -1,5 +1,11 @@
 $(document).ready(function(){
-  App.init()
+  $.get('http://localhost:4444/api')
+   .done(function(res){
+      window.movie_list = JSON.parse(res)
+      App.init(window.movie_list)
+    })
+  // App.init()
+  // $.post('http://localhost:4444/', {movies: JSON.stringify(this.fullMovieListings)}, function(res){console.log(res)})
   //App.init(SampleData.movieData) //development
 })
 
