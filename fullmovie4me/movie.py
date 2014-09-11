@@ -23,17 +23,18 @@ def parse_title_and_year(post_title):
     return None, None
   return movie_title, int(movie_year)
 
-def movie_listings(count=20, cursor=None):
+def movie_listings(n_pages=1, n_subs=3):
   '''wrapper for bulk fetching movie listings from reddit'''
-  subreddit = "fullmoviesonanything"
-  while count > 0:
-    count -= 20
-    for listing in fetch_movie_listings(subreddit, count=20, cursor=cursor):
-      movie, cursor = listing
-      yield movie
+  SUBREDITTS = ["fullmoviesonanything", "fullmoviesonyoutube", "bestofstreamingvideo"]
+  for sub in SUBREDITTS[:n_subs]:
+    cursor = None
+    for _ in range(n_pages):
+      for listing in fetch_movie_listings(sub, cursor=cursor):
+        movie, cursor = listing
+        yield movie
 
 def query_reddit_api(subreddit, count=20, cursor=None):
-  '''fetches the json representation of a reddit forum page'''
+  '''fetches the json representation of a subreddit page'''
   endpoint = 'http://reddit.com/r/%s.json?count=%s&after=%s' % (subreddit, count, cursor)
   try:
     data_str = urllib2.urlopen(endpoint).read()
@@ -44,14 +45,12 @@ def query_reddit_api(subreddit, count=20, cursor=None):
   return json.loads(data_str)['data']
 
 def fetch_movie_listings(subreddit, count=20, cursor=None):
-  '''generates parsed movie listings'''
+  '''generates parsed movie listings from a subreddit page'''
   data = query_reddit_api(subreddit, count, cursor)
   listings = data['children']
   cursor = data.get('after', None)
   for listing in listings:
     url = listing['data']['url']
-    # if Movie.query(Movie.youtube_url == url):
-    #   continue
     post_title = listing['data']['title']
     title, year = parse_title_and_year(post_title)
     movie = Movie(title=title, year=year, youtube_url=url)
@@ -97,8 +96,8 @@ def fetch_movie_data(title, year, delay=5):
     match = movies[0]
   return match
 
-def fetch_new_movies_and_ratings(count=20, overwrite=False):
-  for movie in movie_listings(count):
+def fetch_new_movies_and_ratings(n_pages=1, overwrite=False):
+  for movie in movie_listings(n_pages=1, n_subs=3):
     if not movie.title:
       continue
     exists = Movie.query(Movie.youtube_url == movie.youtube_url).get() # TODO: keys only req?
