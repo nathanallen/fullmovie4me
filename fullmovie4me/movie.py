@@ -25,21 +25,27 @@ def parse_title_and_year(post_title):
 
 def movie_listings(count=20, cursor=None):
   '''wrapper for bulk fetching movie listings from reddit'''
+  subreddit = "fullmoviesonanything"
   while count > 0:
     count -= 20
-    for listing in fetch_movie_listings(count=20, cursor=cursor):
+    for listing in fetch_movie_listings(subreddit, count=20, cursor=cursor):
       movie, cursor = listing
       yield movie
 
-def fetch_movie_listings(count=20, cursor=None):
-  '''fetches the json representation of a reddit forum page /
-      generates parsed movie listings'''
-  endpoint = 'http://reddit.com/r/fullmoviesonanything.json?count=%s&after=%s' % (count, cursor)
+def query_reddit_api(subreddit, count=20, cursor=None):
+  '''fetches the json representation of a reddit forum page'''
+  endpoint = 'http://reddit.com/r/%s.json?count=%s&after=%s' % (subreddit, count, cursor)
   try:
     data_str = urllib2.urlopen(endpoint).read()
   except:
     data_str = urllib2.urlopen(endpoint).read()
-  data = json.loads(data_str)['data']
+  if not data_str:
+    return None
+  return json.loads(data_str)['data']
+
+def fetch_movie_listings(subreddit, count=20, cursor=None):
+  '''generates parsed movie listings'''
+  data = query_reddit_api(subreddit, count, cursor)
   listings = data['children']
   cursor = data.get('after', None)
   for listing in listings:
