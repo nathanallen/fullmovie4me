@@ -23,16 +23,33 @@ def parse_title_and_year(post_title):
     return None, None
   return movie_title, int(movie_year)
 
-def fetch_movie_listings():
-  data = urllib2.urlopen('http://reddit.com/r/fullmoviesonanything.json').read()
-  listings = json.loads(data)['data']['children']
+def movie_listings(count=20, cursor=None):
+  '''wrapper for bulk fetching movie listings from reddit'''
+  while count > 0:
+    count -= 20
+    for listing in fetch_movie_listings(count=20, cursor=cursor):
+      movie, cursor = listing
+      yield movie
+
+def fetch_movie_listings(count=20, cursor=None):
+  '''fetches the json representation of a reddit forum page /
+      generates parsed movie listings'''
+  endpoint = 'http://reddit.com/r/fullmoviesonanything.json?count=%s&after=%s' % (count, cursor)
+  try:
+    data_str = urllib2.urlopen(endpoint).read()
+  except:
+    data_str = urllib2.urlopen(endpoint).read()
+  data = json.loads(data_str)['data']
+  listings = data['children']
+  cursor = data.get('after', None)
   for listing in listings:
     url = listing['data']['url']
     # if Movie.query(Movie.youtube_url == url):
     #   continue
     post_title = listing['data']['title']
     title, year = parse_title_and_year(post_title)
-    yield title, year, url
+    movie = Movie(title=title, year=year, youtube_url=url)
+    yield movie, cursor
 
 def build_rotten_api_request_url(title):
   ROTTEN_KEY = "7ru5dxvkwrfj8yfx36ymhch7"
@@ -74,22 +91,20 @@ def fetch_movie_data(title, year, delay=5):
     match = movies[0]
   return match
 
-def fetch_new_movies_and_ratings(overwrite=False):
-  for title, year, url in fetch_movie_listings():
-    if not title:
+def fetch_new_movies_and_ratings(count=20, overwrite=False):
+  for movie in movie_listings(count):
+    if not movie.title:
       continue
-    exists = Movie.query(Movie.youtube_url == url).get() # TODO: keys only req?
+    exists = Movie.query(Movie.youtube_url == movie.youtube_url).get() # TODO: keys only req?
     if exists:
       if overwrite:
         exists.key.delete()
+      print "skipping " + movie.title
       continue
-    match = fetch_movie_data(title, year)
+    match = fetch_movie_data(movie.title, movie.year)
     if not match:
       continue
     ratings = match.get('ratings', {})
-    Movie.put(Movie(**{ "title": match.get('title') or title, 
-                        "year": year,
-                        "url": url,
-                        "audience_rating": ratings.get('audience_score'),
-                        "critics_rating": ratings.get('critics_score')
-                      }))
+    movie.audience_rating = ratings.get('audience_score')
+    movie.critics_rating = ratings.get('critics_score')
+    Movie.put(movie)
