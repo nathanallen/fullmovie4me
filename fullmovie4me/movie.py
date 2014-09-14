@@ -10,6 +10,22 @@ class Movie(ndb.Model):
   creation_ts = ndb.DateTimeProperty(required=True, auto_now_add=True)
   # title, year, audience_rating, critics_rating, youtube_url
 
+  def put(self):
+    Movie.put(self)
+
+  def fetch_ratings(self, save=True):
+    # TODO: check ratings already exist
+    match = fetch_movie_data(self.title, self.year)
+    if not match:
+      return None
+    ratings = match.get('ratings', {})
+    self.audience_rating = ratings.get('audience_score')
+    self.critics_rating = ratings.get('critics_score')
+    if save:
+      self.put()
+    # return ratings
+
+
 def parse_title_and_year(post_title):
   if post_title == None or post_title == '':
     return None, None
@@ -104,18 +120,18 @@ def fetch_new_movies_and_ratings(n_pages=1, n_subs=3, overwrite=False):
     if exists:
       if overwrite:
         exists.key.delete()
-      print "skipping " + movie.title
-      continue
-    match = fetch_movie_data(movie.title, movie.year)
-    if not match:
-      continue
-    ratings = match.get('ratings', {})
-    movie.audience_rating = ratings.get('audience_score')
-    movie.critics_rating = ratings.get('critics_score')
-    Movie.put(movie)
+      else:
+        print "skipping " + movie.title
+        continue
+    movie.fetch_ratings(save=True)
 
-def newest_movies(to_json=True):
-    #TODO: Caching
+def newest_movies(to_json=True, fetch=False):
+    #TODO: Check newest timestamp, create task
+    if fetch:
+      try:
+        fetch_new_movies_and_ratings(n_pages=1, n_subs=3, overwrite=False)
+      except:
+        print "hiccupped while trying to fetch_new_movies_and_ratings"
     movies = Movie.query().order(-Movie.creation_ts).fetch(1000)
     movies = [amovie.to_dict(exclude=['creation_ts']) for amovie in movies]
     movies = dict([(amovie.get('title',''), amovie) for amovie in movies]).values() # dirty filter for uniques
