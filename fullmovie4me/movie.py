@@ -1,4 +1,5 @@
 from google.appengine.ext import ndb
+from google.appengine.api import memcache
 import urllib2, json, re, time
 
 class Movie(ndb.Model):
@@ -9,9 +10,6 @@ class Movie(ndb.Model):
   youtube_url = ndb.StringProperty() # any video url
   creation_ts = ndb.DateTimeProperty(required=True, auto_now_add=True)
   # title, year, audience_rating, critics_rating, youtube_url
-
-  def put(self):
-    Movie.put(self)
 
   def fetch_ratings(self, save=True):
     # TODO: check ratings already exist
@@ -39,19 +37,39 @@ def parse_title_and_year(post_title):
     return None, None
   return movie_title, int(movie_year)
 
-def movie_listings(n_pages=1, n_subs=3):
-  '''wrapper for bulk fetching movie listings from reddit'''
-  SUBREDITTS = ["fullmoviesonanything", "fullmoviesonyoutube", "bestofstreamingvideo"]
-  for sub in SUBREDITTS[:n_subs]:
-    cursor = None
-    for _ in range(n_pages):
-      for listing in fetch_movie_listings(sub, cursor=cursor):
-        movie, cursor = listing
-        yield movie
+SUBREDDITS = ["fullmoviesonanything", "fullmoviesonyoutube", "bestofstreamingvideo"]
 
-def query_reddit_api(subreddit, count=20, cursor=None):
-  '''fetches the json representation of a subreddit page'''
-  endpoint = 'http://reddit.com/r/%s.json?count=%s&after=%s' % (subreddit, count, cursor)
+def fetch_before_cursor(subreddit):
+  return memcache.get(subreddit)
+
+def cache_before_cursor(subreddit, cursor):
+  return memcache.set(subreddit, cursor)
+
+
+def movie_listings(max_pages=1, subreddits=SUBREDDITS, newest_only=True):
+  '''wrapper for bulk fetching movie listings from reddit.
+    if newest_only is True, walks forward through results using the cached before_cursor
+    (otherwise it walks backwards) until either max_pages is reached or results are exhausted'''
+  for subreddit in subreddits:
+    after_cursor = None
+    before_cursor = fetch_before_cursor(subreddit) if newest_only else None
+    for _ in range(max_pages):
+      movies, before_cursor, after_cursor = fetch_and_parse_raw_movie_listings(subreddit, before_cursor=before_cursor, after_cursor=after_cursor)
+      if not len(movies):
+        break
+      for movie in movies:
+        yield movie
+      if before_cursor is None: # i.e we've run out of listings
+        break
+      if newest_only is True:
+        after_cursor = None
+      else:
+        before_cursor = None
+
+def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None):
+  '''fetches the json representation of a subreddit page.
+      if no cursors are provided, returns the topmost page'''
+  endpoint = 'http://reddit.com/r/%s.json?count=%s&before=%s&after=%s' % (subreddit, count, before_cursor, after_cursor)
   try:
     data_str = urllib2.urlopen(endpoint).read()
   except:
@@ -60,17 +78,27 @@ def query_reddit_api(subreddit, count=20, cursor=None):
     return None
   return json.loads(data_str)['data']
 
-def fetch_movie_listings(subreddit, count=20, cursor=None):
-  '''generates parsed movie listings from a subreddit page'''
-  data = query_reddit_api(subreddit, count, cursor)
+def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, after_cursor=None):
+  '''generates parsed movie listings from a subreddit page (and caches the before_cursor)'''
+  data = query_reddit_api(subreddit, count, before_cursor, after_cursor)
   listings = data['children']
-  cursor = data.get('after', None)
+  if not len(listings):
+    return [], None, None
+  next_after_cursor = data.get('after', None)
+  next_before_cursor = data.get('before', None)
+  if next_before_cursor == None and len(listings):
+    # we've run out of subsequent listings
+    # grab the cursor from the topmost / most recent listing and cache it
+    before_cursor = listings[0]['data']['name']
+    cache_before_cursor(subreddit, before_cursor)
+  movies = []
   for listing in listings:
     url = listing['data']['url']
     post_title = listing['data']['title']
     title, year = parse_title_and_year(post_title)
     movie = Movie(title=title, year=year, youtube_url=url)
-    yield movie, cursor
+    movies.append(movie)
+  return movies, next_before_cursor, next_after_cursor
 
 def build_rotten_api_request_url(title):
   ROTTEN_KEY = "7ru5dxvkwrfj8yfx36ymhch7"
@@ -112,8 +140,8 @@ def fetch_movie_data(title, year, delay=5):
     match = movies[0]
   return match
 
-def fetch_new_movies_and_ratings(n_pages=1, n_subs=3, overwrite=False):
-  for movie in movie_listings(n_pages=n_pages, n_subs=n_subs):
+def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=False, newest_only=True):
+  for movie in movie_listings(max_pages=max_pages, subreddits=subreddits, newest_only=newest_only):
     if not movie.title:
       continue
     exists = Movie.query(Movie.youtube_url == movie.youtube_url).get() # TODO: keys only req?
