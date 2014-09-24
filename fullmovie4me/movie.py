@@ -24,18 +24,9 @@ class Movie(ndb.Model):
     # return ratings
 
 
-def parse_title_and_year(post_title):
-  if post_title == None or post_title == '':
-    return None, None
-  match = re.search(r'([^\(]*?) \((\d{4})\).?', post_title)
-  # TODO: capture "Season 1 / Episode 2" info
-  if not match:
-    return None, None
-  try:
-    movie_title, movie_year = match.group(1, 2)
-  except:
-    return None, None
-  return movie_title, int(movie_year)
+#
+# REDDIT API
+#
 
 SUBREDDITS = ["fullmoviesonanything", "fullmoviesonyoutube", "bestofstreamingvideo"]
 
@@ -45,6 +36,17 @@ def fetch_before_cursor(subreddit):
 def cache_before_cursor(subreddit, cursor):
   return memcache.set(subreddit, cursor)
 
+def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None):
+  '''fetches the json representation of a subreddit page.
+      if no cursors are provided, returns the topmost page'''
+  endpoint = 'http://reddit.com/r/%s.json?count=%s&before=%s&after=%s' % (subreddit, count, before_cursor, after_cursor)
+  try:
+    data_str = urllib2.urlopen(endpoint).read()
+  except:
+    data_str = urllib2.urlopen(endpoint).read()
+  if not data_str:
+    return None
+  return json.loads(data_str)['data']
 
 def movie_listings(max_pages=1, subreddits=SUBREDDITS, newest_only=True):
   '''wrapper for bulk fetching movie listings from reddit.
@@ -66,18 +68,6 @@ def movie_listings(max_pages=1, subreddits=SUBREDDITS, newest_only=True):
       else:
         before_cursor = None
 
-def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None):
-  '''fetches the json representation of a subreddit page.
-      if no cursors are provided, returns the topmost page'''
-  endpoint = 'http://reddit.com/r/%s.json?count=%s&before=%s&after=%s' % (subreddit, count, before_cursor, after_cursor)
-  try:
-    data_str = urllib2.urlopen(endpoint).read()
-  except:
-    data_str = urllib2.urlopen(endpoint).read()
-  if not data_str:
-    return None
-  return json.loads(data_str)['data']
-
 def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, after_cursor=None):
   '''generates parsed movie listings from a subreddit page (and caches the before_cursor)'''
   data = query_reddit_api(subreddit, count, before_cursor, after_cursor)
@@ -91,6 +81,9 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
     # grab the cursor from the topmost / most recent listing and cache it
     before_cursor = listings[0]['data']['name']
     cache_before_cursor(subreddit, before_cursor)
+  return parsed_movie_listings(listings), next_before_cursor, next_after_cursor
+
+def parsed_movie_listings(listings):
   movies = []
   for listing in listings:
     url = listing['data']['url']
@@ -98,14 +91,30 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
     title, year = parse_title_and_year(post_title)
     movie = Movie(title=title, year=year, youtube_url=url)
     movies.append(movie)
-  return movies, next_before_cursor, next_after_cursor
+  return movies
+
+def parse_title_and_year(post_title):
+  if post_title == None or post_title == '':
+    return None, None
+  match = re.search(r'([^\(]*?) \((\d{4})\).?', post_title)
+  # TODO: capture "Season 1 / Episode 2" info
+  if not match:
+    return None, None
+  try:
+    movie_title, movie_year = match.group(1, 2)
+  except:
+    return None, None
+  return movie_title, int(movie_year)
+
+#
+# ROTTEN TOMATOES API
+#
 
 def build_rotten_api_request_url(title):
   ROTTEN_KEY = "7ru5dxvkwrfj8yfx36ymhch7"
-  BASE_URL = "http://api.rottentomatoes.com/api/public/v1.0"
-  request_url = BASE_URL
+  request_url = "http://api.rottentomatoes.com/api/public/v1.0"
   request_url += "/movies.json?"
-  request_url += "q=" + urllib2.quote(title)
+  request_url += "q=" + urllib2.quote(title) # TODO: KeyError: u'\u8fa3'
   request_url += "&page_limit=5&page=1"
   request_url += "&apikey=" + ROTTEN_KEY
   return request_url
@@ -140,6 +149,10 @@ def fetch_movie_data(title, year, delay=5):
     match = movies[0]
   return match
 
+#
+# General Interface for Retrieving Movies
+#
+
 def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=False, newest_only=True):
   for movie in movie_listings(max_pages=max_pages, subreddits=subreddits, newest_only=newest_only):
     if not movie.title:
@@ -149,20 +162,17 @@ def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=F
       if overwrite:
         exists.key.delete()
       else:
-        print "skipping " + movie.title
+        print "skipping " + repr(movie.title)
         continue
+    print "fetching " + repr(movie.title)
     movie.fetch_ratings(save=True)
+    print movie
 
 def newest_movies(to_json=True, fetch=False):
-    #TODO: Check newest timestamp, create task
-    if fetch:
-      try:
-        fetch_new_movies_and_ratings(n_pages=1, n_subs=3, overwrite=False)
-      except:
-        print "hiccupped while trying to fetch_new_movies_and_ratings"
-    movies = Movie.query().order(-Movie.creation_ts).fetch(1000)
-    movies = [amovie.to_dict(exclude=['creation_ts']) for amovie in movies]
-    movies = dict([(amovie.get('title',''), amovie) for amovie in movies]).values() # dirty filter for uniques
-    if to_json:
-      return json.dumps(movies)
-    return movies
+  if fetch:
+    fetch_new_movies_and_ratings(max_pages=3, overwrite=False, newest_only=True)
+  movies = Movie.query().order(-Movie.creation_ts).fetch(1000)
+  movies = [amovie.to_dict(exclude=['creation_ts']) for amovie in movies]
+  if to_json:
+    return json.dumps(movies)
+  return movies
