@@ -4,8 +4,11 @@ import movie
 import webapp2, json
 
 class ApiHandler(webapp2.RequestHandler):
-  def get(self):
-    movie_list = movie.newest_movies()
+  def get(self, *args):
+    # resource = args[0] if args else None # e.g. "movies"
+    query_params = self.request.params
+    fetch = query_params.get('fetch', '0') == '1'
+    movie_list = movie.newest_movies(fetch=fetch)
     self.response.headers.add_header("Access-Control-Allow-Origin", "*")
     self.response.headers['Content-Type'] = 'application/javascript'
     self.response.out.write(movie_list)
@@ -31,5 +34,5 @@ class ViewHandler(webapp2.RequestHandler):
 
 application = webapp2.WSGIApplication([
     ('/', ViewHandler),
-    ('/api', ApiHandler),
+    ('/api/([^/]+)?.json', ApiHandler),
 ], debug=True)
