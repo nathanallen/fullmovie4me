@@ -40,11 +40,12 @@ def cache_before_cursor(subreddit, cursor):
 def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None):
   '''fetches the json representation of a subreddit page.
       if no cursors are provided, returns the topmost page'''
-  endpoint = 'http://reddit.com/r/%s.json?count=%s&before=%s&after=%s' % (subreddit, count, before_cursor, after_cursor)
+  endpoint = 'http://reddit.com/r/%s.json' % (subreddit)
+  query_data = {'count': count, 'before': before_cursor, 'after': after_cursor}
   try:
-    data_str = urllib2.urlopen(endpoint).read()
+    data_str = urllib2.urlopen(endpoint, query_data).read()
   except:
-    data_str = urllib2.urlopen(endpoint).read()
+    data_str = urllib2.urlopen(endpoint, query_data).read()
   if not data_str:
     return None
   return json.loads(data_str)['data']
@@ -116,11 +117,10 @@ def parse_title_and_year(post_title):
 # ROTTEN TOMATOES API
 #
 
-def build_rotten_api_request_url(title):
+def build_rotten_api_request_url(title, resource='movies'):
   ROTTEN_KEY = "7ru5dxvkwrfj8yfx36ymhch7"
-  request_url = "http://api.rottentomatoes.com/api/public/v1.0"
-  request_url += "/movies.json?"
-  request_url += "q=" + urllib2.quote(title) # TODO: KeyError: u'\u8fa3'
+  request_url = "http://api.rottentomatoes.com/api/public/v1.0/" + resource + ".json"
+  request_url += "?q=" + urllib2.quote(title) # TODO: KeyError: u'\u8fa3'
   request_url += "&page_limit=5&page=1"
   request_url += "&apikey=" + ROTTEN_KEY
   return request_url
@@ -130,8 +130,8 @@ def query_rotten_api(title, delay=5):
     return None
   time.sleep(delay)
   request_url = build_rotten_api_request_url(title)
-  request_data = urllib2.urlopen(request_url).read()
-  return json.loads(request_data)
+  data_str = urllib2.urlopen(request_url).read()
+  return json.loads(data_str)
 
 def fetch_movie_data(title, year, delay=5):
   if not title:
