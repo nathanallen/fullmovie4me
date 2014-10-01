@@ -1,6 +1,6 @@
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
-import urllib2, json, re, time
+import urllib2, json, re, datetime, time
 
 class Movie(ndb.Model):
   title = ndb.StringProperty()
@@ -8,6 +8,7 @@ class Movie(ndb.Model):
   audience_rating = ndb.IntegerProperty()
   critics_rating = ndb.IntegerProperty()
   youtube_url = ndb.StringProperty() # any video url
+  listing_ts = ndb.DateTimeProperty() # i.e. when was movie listed?
   creation_ts = ndb.DateTimeProperty(required=True, auto_now_add=True)
   # title, year, audience_rating, critics_rating, youtube_url
 
@@ -86,10 +87,15 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
 def parsed_movie_listings(listings):
   movies = []
   for listing in listings:
-    url = listing['data']['url']
     post_title = listing['data']['title']
     title, year = parse_title_and_year(post_title)
-    movie = Movie(title=title, year=year, youtube_url=url)
+    if title == None:
+      continue
+      # TODO: if year is None?
+    url = listing['data']['url']
+    listing_utc = listing['data']['created_utc']
+    listing_ts = datetime.datetime.fromtimestamp(listing_utc)
+    movie = Movie(title=title, year=year, youtube_url=url, listing_ts=listing_ts)
     movies.append(movie)
   return movies
 
@@ -171,8 +177,8 @@ def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=F
 def newest_movies(to_json=True, fetch=False):
   if fetch:
     fetch_new_movies_and_ratings(max_pages=3, overwrite=False, newest_only=True)
-  movies = Movie.query().order(-Movie.creation_ts).fetch(1000)
-  movies = [amovie.to_dict(exclude=['creation_ts']) for amovie in movies]
+  movies = Movie.query().order(-Movie.listing_ts).fetch(1000) # swap with listing_ts
+  movies = [amovie.to_dict(exclude=['creation_ts','listing_ts']) for amovie in movies]
   if to_json:
     return json.dumps(movies)
   return movies
