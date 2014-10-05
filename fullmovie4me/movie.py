@@ -76,6 +76,16 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
   listings = data['children']
   if not len(listings):
     return [], None, None
+  movies = []
+  for listing in listings:
+    if listing['data']['name'] == before_cursor:
+      print "booya! caught the cursor and returned early"
+      break
+    movie = parsed_movie_listing(listing)
+    if movie == None:
+      continue
+    movies.append(movie)
+
   next_after_cursor = data.get('after', None)
   next_before_cursor = data.get('before', None)
   if next_before_cursor == None and len(listings):
@@ -83,22 +93,20 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
     # grab the cursor from the topmost / most recent listing and cache it
     before_cursor = listings[0]['data']['name']
     cache_before_cursor(subreddit, before_cursor)
-  return parsed_movie_listings(listings), next_before_cursor, next_after_cursor
+  return movies, next_before_cursor, next_after_cursor
 
-def parsed_movie_listings(listings):
-  movies = []
-  for listing in listings:
-    post_title = listing['data']['title']
-    title, year = parse_title_and_year(post_title)
-    if title == None:
-      continue
-      # TODO: if year is None?
-    url = listing['data']['url']
-    listing_utc = listing['data']['created_utc']
-    listing_ts = datetime.datetime.fromtimestamp(listing_utc)
-    movie = Movie(title=title, year=year, youtube_url=url, listing_ts=listing_ts)
-    movies.append(movie)
-  return movies
+def parsed_movie_listing(listing):
+  '''creates a movie object from a listing'''
+  post_title = listing['data']['title']
+  title, year = parse_title_and_year(post_title)
+  if title == None:
+    return
+    # TODO: if year is None?
+  url = listing['data']['url']
+  listing_utc = listing['data']['created_utc']
+  listing_ts = datetime.datetime.fromtimestamp(listing_utc)
+  return Movie(title=title, year=year, youtube_url=url, listing_ts=listing_ts)
+
 
 def parse_title_and_year(post_title):
   if post_title == None or post_title == '':
