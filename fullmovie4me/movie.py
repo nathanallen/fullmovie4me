@@ -177,7 +177,7 @@ def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=F
 def newest_movies(to_json=True, fetch=False):
   if fetch:
     fetch_new_movies_and_ratings(max_pages=3, overwrite=False, newest_only=True)
-  movies = Movie.query().order(-Movie.listing_ts).fetch(1000) # swap with listing_ts
+  movies = Movie.query().order(-Movie.listing_ts).fetch(100)
   movies = [amovie.to_dict(exclude=['creation_ts','listing_ts']) for amovie in movies]
   if to_json:
     return json.dumps(movies)
