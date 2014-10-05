@@ -71,6 +71,7 @@ def movie_listings(max_pages=1, subreddits=SUBREDDITS, newest_only=True):
         before_cursor = None
 
 def check_cursors(subreddit, data, cache=True):
+  '''grab the latest round of cursors & cache the topmost before_cursor'''
   next_after_cursor = data.get('after', None)
   next_before_cursor = data.get('before', None)
   if cache and next_before_cursor == None and len(data['children']):
