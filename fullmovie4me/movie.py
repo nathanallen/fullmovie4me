@@ -70,6 +70,19 @@ def movie_listings(max_pages=1, subreddits=SUBREDDITS, newest_only=True):
       else:
         before_cursor = None
 
+def check_cursors(subreddit, data, cache=True):
+  next_after_cursor = data.get('after', None)
+  next_before_cursor = data.get('before', None)
+  if cache and next_before_cursor == None and len(data['children']):
+    # we've run out of subsequent listings
+    # grab the cursor from the topmost / most recent listing and cache it
+    before_cursor = data['children'][0]['data']['name']
+    # TODO: if old and new cursors are the same then no need to cache.
+    old_cursor = fetch_before_cursor(subreddit)
+    print "caching %s cursor: old %s, new %s" % (subreddit, old_cursor, before_cursor)
+    cache_before_cursor(subreddit, before_cursor)
+  return next_before_cursor, next_after_cursor
+
 def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, after_cursor=None):
   '''generates parsed movie listings from a subreddit page (and caches the before_cursor)'''
   data = query_reddit_api(subreddit, count, before_cursor, after_cursor)
@@ -78,21 +91,14 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
     return [], None, None
   movies = []
   for listing in listings:
-    if listing['data']['name'] == before_cursor:
+    if before_cursor != None and listing['data']['name'] == before_cursor:
       print "booya! caught the cursor and returned early"
       break
     movie = parsed_movie_listing(listing)
     if movie == None:
       continue
     movies.append(movie)
-
-  next_after_cursor = data.get('after', None)
-  next_before_cursor = data.get('before', None)
-  if next_before_cursor == None and len(listings):
-    # we've run out of subsequent listings
-    # grab the cursor from the topmost / most recent listing and cache it
-    before_cursor = listings[0]['data']['name']
-    cache_before_cursor(subreddit, before_cursor)
+  next_before_cursor, next_after_cursor = check_cursors(subreddit, data)
   return movies, next_before_cursor, next_after_cursor
 
 def parsed_movie_listing(listing):
