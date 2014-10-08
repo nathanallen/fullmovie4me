@@ -1,5 +1,5 @@
 $(document).ready(function(){
-  $.get('http://localhost:4444/api')
+  $.get('http://localhost:4444/api/movies.json', {fetch:1})
    .done(function(res){
       window.movie_list = JSON.parse(res)
       App.init(window.movie_list)

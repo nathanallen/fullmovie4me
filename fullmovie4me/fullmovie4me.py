@@ -2,6 +2,11 @@ from google.appengine.api import users
 from google.appengine.ext import ndb
 import movie
 import webapp2, json
+import jinja2, os
+
+JINJA_ENVIRONMENT = jinja2.Environment(
+  loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
+  autoescape=True)
 
 class ApiHandler(webapp2.RequestHandler):
   def get(self, *args):
@@ -25,8 +30,9 @@ class ApiHandler(webapp2.RequestHandler):
 
 class ViewHandler(webapp2.RequestHandler):
   def get(self):
-    print "HERE"
-    self.response.write('Hello')
+    template_values = {}
+    template = JINJA_ENVIRONMENT.get_template('layout/index.html')
+    self.response.write(template.render(template_values))
     
   def post(self):
     print "HERE"

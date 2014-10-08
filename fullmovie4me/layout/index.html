@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>FullMovie4.me</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="static/base.css">
+  </head>
+
+  <body id='app'>
+    <h1>Full Movie 4 Me</h1>
+    Sort by:
+    <button class="sortby" data-sort_by="audience_rating">Audience Rating<span/></button>
+    <button class="sortby" data-sort_by="year">Year<span/></button>
+    <section id="movie-list">
+      <img id="load-spinner" src="static/spinner.gif">
+    </section>
+    </section>
+
+    <!--vendor-->
+      <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+      <script src="vendor/riot.js"></script>
+      <script type="text/javascript" src="static/base.js"></script>
+    <!--app-->
+
+  </body>
+
+
+  <!-- templates -->
+  <script type="text/tmpl" id="movie-item">
+    <div class='movie-item'>
+      <div><strong><a href='{youtube_url}'>{title}</a></strong> {year}</div>
+      <div>Audience Rating: {audience_rating}, Critics: {critics_rating}</div>
+    </div>
+  </script>
+
+  <!-- start the application -->
+  <script>
+      // admin({
+      //   page: location.hash.slice(2),
+      //   root: $("body"),
+      //   debug: true,
+      //   cache: false
+      // });
+  </script>
+</html>
