@@ -31,22 +31,24 @@ button {
   margin: 0 auto;
 }
 
-
-.arrow {
+.arrow-desc {
   width: 0;
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
+  border-top: 5px solid black;
   position: relative;
   left: 1px;
-}
-
-.arrow.asc {
-  border-top: 5px solid black;
   top: 10px;
 }
 
-.arrow.desc {
+.arrow-asc {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
   border-bottom: 5px solid black;
+  position: relative;
+  left: 1px;
   bottom: 9px;
 }

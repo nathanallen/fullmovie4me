@@ -46,11 +46,7 @@ function MovieList() {
       return movies
     }
 
-    function init() {
-      self.on('load', fetch_movies)
-    }
-
-    init()
+    self.one('load', fetch_movies)
     
 }
 
@@ -58,10 +54,10 @@ function moviePresenter(element, options) {
     element = $(element);
     var template = options.template,
         movieList = options.model,
-        $list_target = element.find('#movie-list'), // TODO: #movie-list
+        $list_target = element.find('#movie-list'),
         $load_spinner = element.find('#load-spinner'),
-        $sort_buttons = element.find('.sortby')
-        // filter_state = null
+        $control = element.find('nav'),
+        sort_options = {};
 
     // private
     function remove_spinner() {
@@ -69,7 +65,7 @@ function moviePresenter(element, options) {
     }
 
     function render_movies(movies) {
-        movies = movies || movieList.movies();
+        movies = movies || movieList.movies(sort_options.sortby, sort_options.direction);
         var listings = movies.map(function(movie, _){
           return $(riot.render(template, movie))
         })
@@ -85,32 +81,62 @@ function moviePresenter(element, options) {
         render_movies(movies)
     }
 
-    function trigger_sort(e) {
-        var button = e.target,
-          field_name = button.dataset.sort_by,
-          direction = button.dataset.sort_direction || 'asc';
-        sort_listings(field_name, direction)
-        toggle_sort_button_arrows(button, direction)
+    function set_sort_button_arrow(field_name, direction) {
+        $control.find('.sortby#' + field_name)
+                .find('span')
+                .attr('class', 'arrow-' + direction) // ".arrow-asc", ".arrow-desc"
     }
 
-    function toggle_sort_button_arrows(button, direction) {
-        $sort_buttons.each(function(_,el){
-            el.dataset.sort_direction = '';
-            $(el).find('span').removeClass()  //resets arrow class
-        })
-        button.dataset.sort_direction = (direction === 'desc') ? 'asc' : 'desc';
-        $(button).find('span').addClass('arrow ' + direction)
+    function toggle_sort() {
+      var $button = $(this),
+          direction = $button.find('span').attr('class') || 'asc', // ".arrow-desc"
+          direction = (direction.match('desc') ? 'asc' : 'desc'), // toggles arrow direction
+          sortby = $button.attr('id') // "#year", "#audience_rating"
+
+      if (sort_options.direction != direction || sort_options.sortby != sortby){
+        sort_options = {'sortby': sortby, 'direction': direction} // setter
+        sort_listings(sortby, direction)
+        set_sort_button_arrow(sortby, direction)
+      }
+
     }
 
+    function init_sort_options(page, conf) {
+      sort_options = {'sortby': conf.sortby, 'direction': conf.direction}
+      set_sort_button_arrow(conf.sortby, conf.direction)
+    }
+
+    $control.on("click", "button", toggle_sort);
+    movieList.one('load', init_sort_options)
     movieList.on('render', render_movies)
-    movieList.on('render', remove_spinner)
-    $sort_buttons.on('click', trigger_sort)
+    movieList.one('render', remove_spinner)
+
 }
 
 function routes(models) {
     riot.route(function(hash) {
-        models.movieList.trigger('load', hash.slice(2));
+        hash = hash.slice(2) || 'movies'
+        var split_hash = hash.split('?'),
+            current_hash = split_hash[0],
+            query_str = split_hash[1],
+            query_params = parse_query_params(query_str)
+        models.movieList.trigger('load', current_hash, query_params)
     });
+
+    // private
+    function parse_query_params(query_str) {
+      if (!query_str){return {}}
+      var params = {}
+      var key_vals = query_str.split('&')
+      var n = key_vals.length
+      while (n--) {
+        var key_val = key_vals[n].split('=')
+        if (key_val.length != 2){ continue }
+        params[key_val[0]] = key_val[1]
+      }
+      return params
+    }
+
 }
 
 var movieList;
