@@ -21,9 +21,9 @@ function MovieList() {
         backend = new Backend(self),
         movies = [];
     
-    self.movies = function(field_name, direction) {
+    self.movies = function(sort_options) {
         movies = movies.length ? movies : backend.movies
-        return sorted_movies(field_name, direction)
+        return sorted_movies(sort_options)
     }
 
     // private
@@ -33,14 +33,15 @@ function MovieList() {
       })
     }
 
-    function sorted_movies(field_name, direction) {
+    function sorted_movies(sort_options) {
+      var field_name = sort_options.sortby;
       if (!field_name) {return movies};
       movies.sort(function(a,b){
           if (!(a[field_name])) return -1
           if (!(b[field_name])) return 1
           return a[field_name] - b[field_name]
       })
-      if (direction === 'desc'){
+      if (sort_options.direction === 'desc'){
           movies.reverse()
       }
       return movies
@@ -65,7 +66,7 @@ function moviePresenter(element, options) {
         if (sort_options.direction !== opts.direction || sort_options.sortby !== opts.sortby){
             sort_options.sortby = opts.sortby
             sort_options.direction = opts.direction
-            var movies = movieList.movies(sort_options.sortby, sort_options.direction);
+            var movies = movieList.movies(sort_options);
             build_movie_list(movies)
             set_sort_button_arrow(sort_options.sortby, sort_options.direction)
         }
