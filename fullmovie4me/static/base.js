@@ -27,9 +27,9 @@ function MovieList() {
     }
 
     // private
-    function fetch_movies() {
+    function fetch_movies(page, conf) {
       backend.fetch_movies(function(movies){
-          self.trigger('render')
+          self.trigger('render', conf)
       })
     }
 
@@ -57,28 +57,34 @@ function moviePresenter(element, options) {
         $list_target = element.find('#movie-list'),
         $load_spinner = element.find('#load-spinner'),
         $control = element.find('nav'),
-        sort_options = {};
+        sort_options = {'sortby': null,
+                        'direction': null};
+
+    self.render_movies = function(opts) {
+        opts = opts || {};
+        if (sort_options.direction !== opts.direction || sort_options.sortby !== opts.sortby){
+            sort_options.sortby = opts.sortby
+            sort_options.direction = opts.direction
+            var movies = movieList.movies(sort_options.sortby, sort_options.direction);
+            build_movie_list(movies)
+            set_sort_button_arrow(sort_options.sortby, sort_options.direction)
+        }
+    }
 
     // private
     function remove_spinner() {
       $load_spinner.remove()
     }
 
-    function render_movies(movies) {
-        movies = movies || movieList.movies(sort_options.sortby, sort_options.direction);
-        var listings = movies.map(function(movie, _){
-          return $(riot.render(template, movie))
-        })
-        add(listings)
+    function build_movie_list(movies) {
+      var listings = movies.map(function(movie, _){
+            return $(riot.render(template, movie))
+          })
+      add(listings)
     }
 
     function add(movie_listings) {
         $list_target.html(movie_listings)
-    }
-
-    function sort_listings(field_name, direction){
-        var movies = movieList.movies(field_name, direction)
-        render_movies(movies)
     }
 
     function set_sort_button_arrow(field_name, direction) {
@@ -92,23 +98,11 @@ function moviePresenter(element, options) {
           direction = $button.find('span').attr('class') || 'asc', // ".arrow-desc"
           direction = (direction.match('desc') ? 'asc' : 'desc'), // toggles arrow direction
           sortby = $button.attr('id') // "#year", "#audience_rating"
-
-      if (sort_options.direction != direction || sort_options.sortby != sortby){
-        sort_options = {'sortby': sortby, 'direction': direction} // setter
-        sort_listings(sortby, direction)
-        set_sort_button_arrow(sortby, direction)
-      }
-
-    }
-
-    function init_sort_options(page, conf) {
-      sort_options = {'sortby': conf.sortby, 'direction': conf.direction}
-      set_sort_button_arrow(conf.sortby, conf.direction)
+      self.render_movies({'sortby': sortby, 'direction': direction})
     }
 
     $control.on("click", "button", toggle_sort);
-    movieList.one('load', init_sort_options)
-    movieList.on('render', render_movies)
+    movieList.on('render', self.render_movies)
     movieList.one('render', remove_spinner)
 
 }
