@@ -47,7 +47,7 @@ function MovieList() {
       return movies
     }
 
-    self.one('load', fetch_movies)
+    self.one('load', fetch_movies) // TODO: navigating back not triggering load, need separate init;
     
 }
 
@@ -62,13 +62,11 @@ function moviePresenter(element, options) {
                         'direction': null};
 
     self.render_movies = function(opts) {
-        opts = opts || {};
         if (sort_options.direction !== opts.direction || sort_options.sortby !== opts.sortby){
-            sort_options.sortby = opts.sortby
-            sort_options.direction = opts.direction
+            sort_options = {'sortby': opts.sortby, 'direction': opts.direction} // setter
             var movies = movieList.movies(sort_options);
             build_movie_list(movies)
-            set_sort_button_arrow(sort_options.sortby, sort_options.direction)
+            set_sort_button_arrow(sort_options)
         }
     }
 
@@ -88,10 +86,10 @@ function moviePresenter(element, options) {
         $list_target.html(movie_listings)
     }
 
-    function set_sort_button_arrow(field_name, direction) {
-        $control.find('.sortby#' + field_name)
+    function set_sort_button_arrow(opts) {
+        $control.find('.sortby#' + opts.sortby)
                 .find('span')
-                .attr('class', 'arrow-' + direction) // ".arrow-asc", ".arrow-desc"
+                .attr('class', 'arrow-' + opts.direction) // ".arrow-asc", ".arrow-desc"
     }
 
     function toggle_sort() {
@@ -121,9 +119,9 @@ function routes(models) {
     // private
     function parse_query_params(query_str) {
       if (!query_str){return {}}
-      var params = {}
-      var key_vals = query_str.split('&')
-      var n = key_vals.length
+      var params = {},
+          key_vals = query_str.split('&'),
+          n = key_vals.length
       while (n--) {
         var key_val = key_vals[n].split('=')
         if (key_val.length != 2){ continue }
