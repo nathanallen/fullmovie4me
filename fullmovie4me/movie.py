@@ -135,7 +135,8 @@ def parse_title_and_year(post_title):
 def build_rotten_api_request_url(title, resource='movies'):
   ROTTEN_KEY = "7ru5dxvkwrfj8yfx36ymhch7"
   request_url = "http://api.rottentomatoes.com/api/public/v1.0/" + resource + ".json"
-  request_url += "?q=" + urllib2.quote(title) # TODO: KeyError: u'\u8fa3'
+  title = re.sub(r'[^a-zA-Z0-9 ]', '', title).strip()
+  request_url += "?q=" + urllib2.quote(title)
   request_url += "&page_limit=5&page=1"
   request_url += "&apikey=" + ROTTEN_KEY
   return request_url
