@@ -53,7 +53,7 @@ def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None,
   endpoint = 'http://reddit.com/r/%s.json' % (subreddit)
   query_data = urllib.urlencode([('count', count), ('before', before_cursor), ('after', after_cursor)])
   request = urllib2.Request(endpoint, query_data)
-  request.add_header('user-agent', 'fullmovie4me/0.1 by n_ll_n')
+  request.add_header('user-agent', os.environ['REDDIT_API_USER_AGENT']) # https://github.com/reddit/reddit/wiki/API
   data_str = urllib2.urlopen(request).read()
   if not data_str:
     return None
@@ -144,12 +144,12 @@ def parse_title_and_year(post_title):
 #
 
 def build_rotten_api_request_url(title, resource='movies'):
-  ROTTEN_KEY = "7ru5dxvkwrfj8yfx36ymhch7"
+  ROTTEN_API_KEY = os.environ['ROTTEN_API_KEY']
   request_url = "http://api.rottentomatoes.com/api/public/v1.0/" + resource + ".json"
   title = re.sub(r'[^a-zA-Z0-9 ]', '', title).strip()
   request_url += "?q=" + urllib2.quote(title)
   request_url += "&page_limit=5&page=1"
-  request_url += "&apikey=" + ROTTEN_KEY
+  request_url += "&apikey=" + ROTTEN_API_KEY
   return request_url
 
 def query_rotten_api(title, delay=5):
