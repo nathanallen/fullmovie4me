@@ -1,19 +1,13 @@
-FullMovieMeter
+FullMovie4Me
 ==============
-A web application that cross references [r/fullmoviesonyoutube](http://www.reddit.com/r/fullmoviesonyoutube) with movie ratings from [Rotten Tomatoes](www.rottentomatoes.com).
-
-Demo it here: http://fullmoviemeter.herokuapp.com
+A mash-up of Reddit and Rotten Tomoatoes so you can find good movies to watch online for free. Originally conceived as a pure client-side app called [fullmoviemeter](https://github.com/nathanallen/fullmoviemeter), and now fleshed out with a backend/api (hosted on Google App Engine) and the minimalist [riot.js](https://muut.com/riotjs/) front end framework.
 
 ####Technologies:
-* Javascript, jQuery, HTML, CSS
+* Google App Engine (Python)
+* [Riot.js](https://muut.com/riotjs/)
 * Reddit API
 * Rotten Tomatoes API
 
 ####Development:
-In development, run a local server, for instance:
-
-```
-python -m SimpleHTTPServer
-```
-
-Note that you will need to add your own API secrets at development/secrets.js. Alternatively you can plug in development/sampleData.js instead of making API calls.
+First install the the Google App Engine SDK.
+Note that you will need to add your own API secrets for Reddit / Rotten Tomatoes in app.yaml. See the example file.

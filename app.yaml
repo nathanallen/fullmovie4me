@@ -1,0 +1,26 @@
+application: fullmovie4me 
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /static
+  static_dir: static
+
+- url: /vendor
+  static_dir: vendor
+
+- url: /.*
+  script: fullmovie4me.application
+
+libraries:
+- name: webapp2
+  version: latest
+- name: jinja2
+  version: latest
+
+# secret keys
+env_variables:
+  ROTTEN_API_KEY: "7ru5dxvkwrfj8yfx36ymhch7"
+  REDDIT_API_USER_AGENT: "fullmovie4me/0.1 by n_ll_n"
