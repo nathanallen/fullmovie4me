@@ -14,13 +14,17 @@ class Movie(ndb.Model):
 
   def fetch_ratings(self, save=True):
     # TODO: check ratings already exist
+    # TODO: save anyway, add task to find misssing ratings
+    print "fetching..."
     match = fetch_movie_data(self.title, self.year)
     if not match:
+      print "WARNING: ratings fetch failed"
       return None
     ratings = match.get('ratings', {})
     self.audience_rating = ratings.get('audience_score')
     self.critics_rating = ratings.get('critics_score')
     if save:
+      print "saving..."
       self.put()
     # return ratings
 
@@ -126,6 +130,7 @@ def parse_title_and_year(post_title):
     return None, None
   match = re.search(r'([^\(]*?) \((\d{4})\).?', post_title)
   # TODO: capture "Season 1 / Episode 2" info
+  # TODO: "The Purge (I) (2013)" --> "I)""
   if not match:
     return None, None
   try:
@@ -152,17 +157,21 @@ def query_rotten_api(title, delay=5):
     return None
   time.sleep(delay)
   request_url = build_rotten_api_request_url(title)
+  print request_url
   data_str = urllib2.urlopen(request_url).read()
   return json.loads(data_str)
 
 def fetch_movie_data(title, year, delay=5):
+  # TODO: save movie ID / IMDB ID & blob of response data
   if not title:
     return None
   data = query_rotten_api(title, delay)
   if not data:
+    print "uh oh... no data in rotten response"
     return None
   movies = data.get('movies', None)
   if not movies:
+    print "uh oh... no movies in rotten response data"
     return None
   match = None
   for movie in movies:
@@ -198,14 +207,18 @@ def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=F
 
 def newest_movies(to_json=True, fetch=False, after_this_ts=None):
   if fetch:
+    # TODO: fetch is to long for ajax call, make this a task
+    # return 200 on request, then, use intermitent polling for new listings
     fetch_new_movies_and_ratings(max_pages=3, overwrite=False, newest_only=True)
   movies = Movie.query().order(-Movie.listing_ts).fetch(20)
   movies = [amovie.to_consumable_dict() for amovie in movies]
   latest_listing_ts = len(movies) and movies[0]['listing_ts']
   cached_latest_listing_ts = memcache.get('latest_listing_ts', 0)
   if cached_latest_listing_ts == 0 or latest_listing_ts > cached_latest_listing_ts:
+    print "in latest_listing_ts block: " + repr(latest_listing_ts)
     memcache.set('latest_listing_ts', latest_listing_ts)
   if after_this_ts: # zero
+    print "in after_this_ts block: " + repr(after_this_ts)
     movies = [amovie for amovie in movies if amovie['listing_ts'] > after_this_ts]
   if to_json:
     return json.dumps(movies)
