@@ -22,5 +22,5 @@ libraries:
 
 # secret keys
 env_variables:
-  ROTTEN_API_KEY: "7ru5dxvkwrfj8yfx36ymhch7"
-  REDDIT_API_USER_AGENT: "fullmovie4me/0.1 by n_ll_n"
+  ROTTEN_API_KEY: "<YOUR ROTTEN TOMATOES API KEY HERE>"
+  REDDIT_API_USER_AGENT: "<YOUR REDDIT API USER-AGENT HEADER HERE>"
