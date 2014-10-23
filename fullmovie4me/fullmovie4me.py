@@ -13,7 +13,8 @@ class ApiHandler(webapp2.RequestHandler):
     # resource = args[0] if args else None # e.g. "movies"
     query_params = self.request.params
     fetch = query_params.get('fetch', '0') == '1'
-    movie_list = movie.newest_movies(fetch=fetch)
+    after_this_ts = int(query_params.get('after_this_ts', 0))
+    movie_list = movie.newest_movies(fetch=fetch, after_this_ts=after_this_ts)
     self.response.headers.add_header("Access-Control-Allow-Origin", "*")
     self.response.headers['Content-Type'] = 'application/javascript'
     self.response.out.write(movie_list)

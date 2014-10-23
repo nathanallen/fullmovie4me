@@ -2,16 +2,31 @@
 
 function Backend(model) {
     var self = this,
-        movieList = model;
+        movieList = model
       
     self.movies = [];
+    self.latest_listing_ts = 0;
 
-    self.fetch_movies = function(cb) {
-        $.get('http://localhost:4444/api/movies.json', {fetch:0})
+    self.fetch_movies = function(cb, force, after_this_ts) {
+        movieList.trigger('loading...')
+        $.get('/api/movies.json', {fetch: force || 0,
+                                   after_this_ts: after_this_ts || self.latest_listing_ts})
          .done(function(res){
-              self.movies = JSON.parse(res)
+              var new_movies = JSON.parse(res)
+              if (!new_movies.length){
+                  console.log('nothing new');
+                  movieList.trigger('done-loaded')
+                  if (cb) { cb(false) }
+                  return false
+              }
+              self.movies = self.movies.concat( new_movies )
+              self.latest_listing_ts = new_movies[0]['listing_ts'];
+              movieList.trigger('done-loaded')
               if (cb) { cb(self.movies) }
           })
+         .fail(function(){
+              movieList.trigger('done-loaded')
+         })
     }
 
 }
@@ -23,10 +38,22 @@ function MovieList() {
     
     self.movies = function(sort_options) {
         movies = movies.length ? movies : backend.movies
+        if (!sort_options) {return movies}
+        if (sort_options.sortby == 'refresh') {
+          new_movies({'sortby': 'listing_ts', 'direction': 'desc'})
+          return false
+        }
         return sorted_movies(sort_options)
     }
 
     // private
+    function new_movies(sort_options) {
+        // force refresh with newest listings, if any
+        backend.fetch_movies(function() {
+          self.trigger('render', sort_options)
+        }, 1)
+    }
+
     function fetch_movies(page, conf) {
       backend.fetch_movies(function(movies){
           self.trigger('render', conf)
@@ -58,21 +85,29 @@ function moviePresenter(element, options) {
         $list_target = element.find('#movie-list'),
         $load_spinner = element.find('#load-spinner'),
         $control = element.find('nav'),
-        sort_options = {'sortby': null,
-                        'direction': null};
+        $refresh_button = $control.find('#refresh'),
+        sort_options = {'sortby': 'listing_ts',
+                        'direction': 'desc'};
 
-    self.render_movies = function(opts) {
-        if (sort_options.direction !== opts.direction || sort_options.sortby !== opts.sortby){
-            sort_options = {'sortby': opts.sortby, 'direction': opts.direction} // setter
+    self.render_movies = function(new_sort) {
+      // Beware infinite request loop! Do not change sort order in response otherwise it will re-request on render.
+        if (new_sort.sortby == 'refresh' || sort_options.direction !== new_sort.direction || sort_options.sortby !== new_sort.sortby){
+            // we've passed the conditional check --> the sort order has changed
+            sort_options = new_sort.sortby ? new_sort : sort_options; // setter
             var movies = movieList.movies(sort_options);
+            if (!movies){return false} // shortcircuit, may be waiting on ajax
             build_movie_list(movies)
-            set_sort_button_arrow(sort_options)
+            toggle_sort_button(sort_options)
         }
     }
 
     // private
+    function show_spinner() {
+      $load_spinner.show()
+    }
+
     function remove_spinner() {
-      $load_spinner.remove()
+      $load_spinner.hide()
     }
 
     function build_movie_list(movies) {
@@ -86,10 +121,11 @@ function moviePresenter(element, options) {
         $list_target.html(movie_listings)
     }
 
-    function set_sort_button_arrow(opts) {
-        $control.find('.sortby#' + opts.sortby)
+    function toggle_sort_button(sort_options) {
+        $control.find('.sortby#' + sort_options.sortby)
                 .find('span')
-                .attr('class', 'arrow-' + opts.direction) // ".arrow-asc", ".arrow-desc"
+                .attr('class', 'arrow-' + sort_options.direction) // ".arrow-asc", ".arrow-desc"
+        $refresh_button.attr('disabled', false)
     }
 
     function toggle_sort() {
@@ -97,12 +133,14 @@ function moviePresenter(element, options) {
           direction = $button.find('span').attr('class') || 'asc', // ".arrow-desc"
           direction = (direction.match('desc') ? 'asc' : 'desc'), // toggles arrow direction
           sortby = $button.attr('id') // "#year", "#audience_rating"
+      $refresh_button.attr('disabled', true)
       self.render_movies({'sortby': sortby, 'direction': direction})
     }
 
     $control.on("click", "button", toggle_sort);
     movieList.on('render', self.render_movies)
-    movieList.one('render', remove_spinner)
+    movieList.on('loading...', show_spinner)
+    movieList.on('done-loaded', remove_spinner)
 
 }
 
@@ -132,10 +170,9 @@ function routes(models) {
 
 }
 
-var movieList;
 
 $(document).ready(function(){
-    var movieList = new MovieList();
+    top.movieList = new MovieList();
     routes({movieList: movieList});
 
     // Binds the Movie Presenter

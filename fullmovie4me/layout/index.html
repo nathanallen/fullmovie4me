@@ -14,13 +14,14 @@
       Sort by:
       <button class='sortby' id='audience_rating'>Audience Rating<span/></button>
       <button class='sortby' id='year'>Year<span/></button>
+      <button class='sortby' id='listing_ts'>Date Added<span/></button>
+      <button class='sortby' id='refresh'>REFRESH</button> <!-- no arrow direction span: always desc -->
+
     </nav>
 
+    <img id="load-spinner" src="static/spinner.gif">
     <section id="movie-list">
-      <img id="load-spinner" src="static/spinner.gif">
     </section>
-    </section>
-
     <!--vendor-->
       <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
       <script src="vendor/riot.js"></script>

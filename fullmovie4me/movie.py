@@ -1,6 +1,6 @@
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
-import urllib2, json, re, datetime, time
+import urllib, urllib2, json, re, datetime, time
 
 class Movie(ndb.Model):
   title = ndb.StringProperty()
@@ -24,12 +24,17 @@ class Movie(ndb.Model):
       self.put()
     # return ratings
 
+  def to_consumable_dict(self, exclude=None):
+    movie_dict = self.to_dict(exclude=['creation_ts'])
+    movie_dict['listing_ts'] = int(1000 * time.mktime(self.listing_ts.timetuple()))
+    return movie_dict
+
 
 #
 # REDDIT API
 #
 
-SUBREDDITS = ["fullmoviesonanything", "fullmoviesonyoutube", "bestofstreamingvideo"]
+SUBREDDITS = ["bestofstreamingvideo", "fullmoviesonanything", "fullmoviesonyoutube"]
 
 def fetch_before_cursor(subreddit):
   return memcache.get(subreddit)
@@ -37,15 +42,15 @@ def fetch_before_cursor(subreddit):
 def cache_before_cursor(subreddit, cursor):
   return memcache.set(subreddit, cursor)
 
-def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None):
+def query_reddit_api(subreddit, count=20, before_cursor=None, after_cursor=None, delay=1):
   '''fetches the json representation of a subreddit page.
       if no cursors are provided, returns the topmost page'''
+  time.sleep(delay)
   endpoint = 'http://reddit.com/r/%s.json' % (subreddit)
-  query_data = {'count': count, 'before': before_cursor, 'after': after_cursor}
-  try:
-    data_str = urllib2.urlopen(endpoint, query_data).read()
-  except:
-    data_str = urllib2.urlopen(endpoint, query_data).read()
+  query_data = urllib.urlencode([('count', count), ('before', before_cursor), ('after', after_cursor)])
+  request = urllib2.Request(endpoint, query_data)
+  request.add_header('user-agent', 'fullmovie4me/0.1 by n_ll_n')
+  data_str = urllib2.urlopen(request).read()
   if not data_str:
     return None
   return json.loads(data_str)['data']
@@ -87,9 +92,10 @@ def check_cursors(subreddit, data, cache=True):
 def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, after_cursor=None):
   '''generates parsed movie listings from a subreddit page (and caches the before_cursor)'''
   data = query_reddit_api(subreddit, count, before_cursor, after_cursor)
-  listings = data['children']
-  if not len(listings):
+  if not data or not data['children']:
+    print "wowza, reddit fetch probably 429ed - no data"
     return [], None, None
+  listings = data['children']
   movies = []
   for listing in listings:
     if before_cursor != None and listing['data']['name'] == before_cursor:
@@ -190,11 +196,17 @@ def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=F
     movie.fetch_ratings(save=True)
     print movie
 
-def newest_movies(to_json=True, fetch=False):
+def newest_movies(to_json=True, fetch=False, after_this_ts=None):
   if fetch:
     fetch_new_movies_and_ratings(max_pages=3, overwrite=False, newest_only=True)
-  movies = Movie.query().order(-Movie.listing_ts).fetch(100)
-  movies = [amovie.to_dict(exclude=['creation_ts','listing_ts']) for amovie in movies]
+  movies = Movie.query().order(-Movie.listing_ts).fetch(20)
+  movies = [amovie.to_consumable_dict() for amovie in movies]
+  latest_listing_ts = len(movies) and movies[0]['listing_ts']
+  cached_latest_listing_ts = memcache.get('latest_listing_ts', 0)
+  if cached_latest_listing_ts == 0 or latest_listing_ts > cached_latest_listing_ts:
+    memcache.set('latest_listing_ts', latest_listing_ts)
+  if after_this_ts: # zero
+    movies = [amovie for amovie in movies if amovie['listing_ts'] > after_this_ts]
   if to_json:
     return json.dumps(movies)
   return movies
