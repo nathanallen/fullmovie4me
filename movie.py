@@ -1,6 +1,6 @@
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
-import urllib, urllib2, json, re, datetime, time
+import os, urllib, urllib2, json, re, datetime, time, logging
 
 class Movie(ndb.Model):
   title = ndb.StringProperty()
@@ -13,18 +13,18 @@ class Movie(ndb.Model):
   # title, year, audience_rating, critics_rating, youtube_url
 
   def fetch_ratings(self, save=True):
-    # TODO: check ratings already exist
+    # TODO: check ratings already exist;
     # TODO: save anyway, add task to find misssing ratings
-    print "fetching..."
+    logging.info("fetching...")
     match = fetch_movie_data(self.title, self.year)
     if not match:
-      print "WARNING: ratings fetch failed"
+      logging.warning("ratings fetch failed")
       return None
     ratings = match.get('ratings', {})
     self.audience_rating = ratings.get('audience_score')
     self.critics_rating = ratings.get('critics_score')
     if save:
-      print "saving..."
+      logging.info("saving...")
       self.put()
     # return ratings
 
@@ -89,7 +89,7 @@ def check_cursors(subreddit, data, cache=True):
     before_cursor = data['children'][0]['data']['name']
     # TODO: if old and new cursors are the same then no need to cache.
     old_cursor = fetch_before_cursor(subreddit)
-    print "caching %s cursor: old %s, new %s" % (subreddit, old_cursor, before_cursor)
+    logging.info("caching %s cursor: old %s, new %s" % (subreddit, old_cursor, before_cursor))
     cache_before_cursor(subreddit, before_cursor)
   return next_before_cursor, next_after_cursor
 
@@ -97,13 +97,13 @@ def fetch_and_parse_raw_movie_listings(subreddit, count=20, before_cursor=None, 
   '''generates parsed movie listings from a subreddit page (and caches the before_cursor)'''
   data = query_reddit_api(subreddit, count, before_cursor, after_cursor)
   if not data or not data['children']:
-    print "wowza, reddit fetch probably 429ed - no data"
+    logging.info("wowza, reddit fetch probably 429ed - no data")
     return [], None, None
   listings = data['children']
   movies = []
   for listing in listings:
     if before_cursor != None and listing['data']['name'] == before_cursor:
-      print "booya! caught the cursor and returned early"
+      logging.info("booya! caught the cursor and returned early")
       break
     movie = parsed_movie_listing(listing)
     if movie == None:
@@ -157,7 +157,7 @@ def query_rotten_api(title, delay=5):
     return None
   time.sleep(delay)
   request_url = build_rotten_api_request_url(title)
-  print request_url
+  logging.info(request_url)
   data_str = urllib2.urlopen(request_url).read()
   return json.loads(data_str)
 
@@ -167,11 +167,11 @@ def fetch_movie_data(title, year, delay=5):
     return None
   data = query_rotten_api(title, delay)
   if not data:
-    print "uh oh... no data in rotten response"
+    logging.warning("uh oh... no data in rotten response")
     return None
   movies = data.get('movies', None)
   if not movies:
-    print "uh oh... no movies in rotten response data"
+    logging.warning("uh oh... no movies in rotten response data")
     return None
   match = None
   for movie in movies:
@@ -182,7 +182,7 @@ def fetch_movie_data(title, year, delay=5):
     match = movie
     break
   if match == None:
-    print "no match on year: guessing"
+    logging.info("no match on year: guessing")
     match = movies[0]
   return match
 
@@ -199,15 +199,15 @@ def fetch_new_movies_and_ratings(max_pages=1, subreddits=SUBREDDITS, overwrite=F
       if overwrite:
         exists.key.delete()
       else:
-        print "skipping " + repr(movie.title)
+        logging.info("skipping " + repr(movie.title))
         continue
-    print "fetching " + repr(movie.title)
+    logging.info("fetching " + repr(movie.title))
     movie.fetch_ratings(save=True)
-    print movie
+    logging.info(movie)
 
 def newest_movies(to_json=True, fetch=False, after_this_ts=None):
   if fetch:
-    # TODO: fetch is to long for ajax call, make this a task
+    # TODO: fetch takes too long for ajax call, make this a task
     # return 200 on request, then, use intermitent polling for new listings
     fetch_new_movies_and_ratings(max_pages=3, overwrite=False, newest_only=True)
   movies = Movie.query().order(-Movie.listing_ts).fetch(20)
@@ -215,10 +215,10 @@ def newest_movies(to_json=True, fetch=False, after_this_ts=None):
   latest_listing_ts = len(movies) and movies[0]['listing_ts']
   cached_latest_listing_ts = memcache.get('latest_listing_ts', 0)
   if cached_latest_listing_ts == 0 or latest_listing_ts > cached_latest_listing_ts:
-    print "in latest_listing_ts block: " + repr(latest_listing_ts)
+    logging.info("in latest_listing_ts block: " + repr(latest_listing_ts))
     memcache.set('latest_listing_ts', latest_listing_ts)
   if after_this_ts: # zero
-    print "in after_this_ts block: " + repr(after_this_ts)
+    logging.info("in after_this_ts block: " + repr(after_this_ts))
     movies = [amovie for amovie in movies if amovie['listing_ts'] > after_this_ts]
   if to_json:
     return json.dumps(movies)
