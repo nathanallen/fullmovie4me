@@ -38,7 +38,6 @@ class ViewHandler(webapp2.RequestHandler):
 
 class CronTask(webapp2.RequestHandler):
   def get(self):
-    logging.info('!!!!launching cron task!!!!')
     movie.fetch_new_movies_and_ratings()
 
 application = webapp2.WSGIApplication([

@@ -11,6 +11,10 @@ handlers:
 - url: /vendor
   static_dir: vendor
 
+- url: /tasks
+  script: fullmovie4me.application
+  login: admin
+
 - url: /.*
   script: fullmovie4me.application
 
