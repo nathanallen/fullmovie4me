@@ -2,6 +2,14 @@ from google.appengine.ext import ndb
 from google.appengine.api import memcache
 import os, urllib, urllib2, json, re, datetime, time, logging
 
+# flush the logs regularly to improve production debugging
+# sets AUTOFLUSH_EVERY_LINES to 1 (vs. default 20)
+# see: https://code.google.com/p/googleappengine/issues/detail?id=8809#c10
+from google.appengine.api import logservice
+logservice.AUTOFLUSH_EVERY_SECONDS = None
+logservice.AUTOFLUSH_EVERY_BYTES = None
+logservice.AUTOFLUSH_EVERY_LINES = 1
+
 class Movie(ndb.Model):
   title = ndb.StringProperty()
   year = ndb.IntegerProperty()
