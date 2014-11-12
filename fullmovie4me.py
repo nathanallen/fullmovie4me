@@ -35,12 +35,14 @@ class ViewHandler(webapp2.RequestHandler):
     template_values = {}
     template = JINJA_ENVIRONMENT.get_template('layout/index.html')
     self.response.write(template.render(template_values))
-    
-  def post(self):
-    logging.info("HERE")
-    self.response.write('Hello')
+
+class CronTask(webapp2.RequestHandler):
+  def get(self):
+    logging.info('!!!!launching cron task!!!!')
+    movie.fetch_new_movies_and_ratings()
 
 application = webapp2.WSGIApplication([
     ('/', ViewHandler),
     ('/api/([^/]+)?.json', ApiHandler),
+    ('/tasks', CronTask)
 ], debug=True)

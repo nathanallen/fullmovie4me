@@ -1,0 +1,4 @@
+cron:
+- description: pull in latest movie listings
+  url: /tasks
+  schedule: every 12 hours
