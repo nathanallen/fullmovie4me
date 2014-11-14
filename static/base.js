@@ -86,6 +86,7 @@ function moviePresenter(element, options) {
         $load_spinner = element.find('#load-spinner'),
         $control = element.find('nav'),
         $refresh_button = $control.find('#refresh'),
+        $search = $control.find('input[name=search]'),
         sort_options = {'sortby': 'listing_ts',
                         'direction': 'desc'};
 
@@ -137,7 +138,18 @@ function moviePresenter(element, options) {
       self.render_movies({'sortby': sortby, 'direction': direction})
     }
 
+    function trigger_search(e) {
+      if (e.which == 13) {
+        var search_str = $(this).val()
+        $.get('/api/autocomplete.json', {search: search_str})
+         .done(function(res){
+           build_movie_list(JSON.parse(res))
+         })
+      }
+    }
+
     $control.on("click", "button", toggle_sort);
+    $search.on("keypress", trigger_search)
     movieList.on('render', self.render_movies)
     movieList.on('loading...', show_spinner)
     movieList.on('done-loaded', remove_spinner)
