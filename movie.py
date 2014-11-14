@@ -12,6 +12,7 @@ logservice.AUTOFLUSH_EVERY_LINES = 1
 
 class Movie(ndb.Model):
   title = ndb.StringProperty()
+  title_tags = ndb.StringProperty(repeated=True)
   year = ndb.IntegerProperty()
   audience_rating = ndb.IntegerProperty()
   critics_rating = ndb.IntegerProperty()
@@ -19,6 +20,11 @@ class Movie(ndb.Model):
   listing_ts = ndb.DateTimeProperty() # i.e. when was movie listed?
   creation_ts = ndb.DateTimeProperty(required=True, auto_now_add=True)
   # title, year, audience_rating, critics_rating, youtube_url
+
+  def put(self, **kwargs):
+    self.title_tags = self.title.lower().split()
+    super(Movie, self).put(**kwargs)
+    return self
 
   def fetch_ratings(self, save=True):
     # TODO: check ratings already exist;
@@ -231,3 +237,10 @@ def newest_movies(to_json=True, fetch=False, after_this_ts=None):
   if to_json:
     return json.dumps(movies)
   return movies
+
+def autocomplete(search_str, max_results=20):
+  if not search_str:
+    return []
+  search_terms = search_str.lower().split()
+  movies = Movie.query(Movie.title_tags.IN(search_terms)).fetch(max_results)
+  return json.dumps([amovie.to_consumable_dict() for amovie in movies])

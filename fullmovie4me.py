@@ -11,11 +11,15 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 
 class ApiHandler(webapp2.RequestHandler):
   def get(self, *args):
-    # resource = args[0] if args else None # e.g. "movies"
+    resource = args[0] if args else None # e.g. "movies", "autocomplete"
     query_params = self.request.params
-    fetch = query_params.get('fetch', '0') == '1'
-    after_this_ts = int(query_params.get('after_this_ts', 0))
-    movie_list = movie.newest_movies(fetch=fetch, after_this_ts=after_this_ts)
+    if resource == "movies":
+      fetch = query_params.get('fetch', '0') == '1'
+      after_this_ts = int(query_params.get('after_this_ts', 0))
+      movie_list = movie.newest_movies(fetch=fetch, after_this_ts=after_this_ts)
+    elif resource == "autocomplete":
+      search_str = query_params.get('search')
+      movie_list = movie.autocomplete(search_str)
     self.response.headers.add_header("Access-Control-Allow-Origin", "*")
     self.response.headers['Content-Type'] = 'application/javascript'
     self.response.out.write(movie_list)
