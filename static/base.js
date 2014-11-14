@@ -29,6 +29,27 @@ function Backend(model) {
          })
     }
 
+    self.search_movies = function(cb, search_str) {
+        movieList.trigger('loading...')
+        $.get('/api/autocomplete.json', {search: search_str})
+         .done(function(res){
+              var new_movies = JSON.parse(res)
+              if (!new_movies.length){
+                  console.log('search found nothing new');
+                  movieList.trigger('done-loaded')
+                  if (cb) { cb(false) }
+                  return false
+              }
+              self.movies = self.movies.concat( new_movies )
+              self.latest_listing_ts = new_movies[0]['listing_ts'];
+              movieList.trigger('done-loaded')
+              if (cb) { cb(new_movies) }
+          })
+         .fail(function(){
+              movieList.trigger('done-loaded')
+         })
+    }
+
 }
 
 function MovieList() {
@@ -37,10 +58,14 @@ function MovieList() {
         movies = [];
     
     self.movies = function(sort_options) {
-        movies = movies.length ? movies : backend.movies
+        movies = backend.movies
         if (!sort_options) {return movies}
         if (sort_options.sortby == 'refresh') {
           new_movies({'sortby': 'listing_ts', 'direction': 'desc'})
+          return false
+        }
+        if (sort_options.sortby == 'search') {
+          search_movies({'sortby': 'filter', 'filter': sort_options.filter})
           return false
         }
         return sorted_movies(sort_options)
@@ -54,6 +79,12 @@ function MovieList() {
         }, 1)
     }
 
+    function search_movies(sort_options) {
+       backend.search_movies(function(movies) {
+         self.trigger('render', sort_options, movies)
+       }, sort_options.filter)
+    }
+
     function fetch_movies(page, conf) {
       backend.fetch_movies(function(movies){
           self.trigger('render', conf)
@@ -63,6 +94,11 @@ function MovieList() {
     function sorted_movies(sort_options) {
       var field_name = sort_options.sortby;
       if (!field_name) {return movies};
+      if (field_name == "filter") {
+        // not implimented
+        return movies
+      }
+
       movies.sort(function(a,b){
           if (!(a[field_name])) return -1
           if (!(b[field_name])) return 1
@@ -90,12 +126,12 @@ function moviePresenter(element, options) {
         sort_options = {'sortby': 'listing_ts',
                         'direction': 'desc'};
 
-    self.render_movies = function(new_sort) {
+    self.render_movies = function(new_sort, movies) {
       // Beware infinite request loop! Do not change sort order in response otherwise it will re-request on render.
         if (new_sort.sortby == 'refresh' || sort_options.direction !== new_sort.direction || sort_options.sortby !== new_sort.sortby){
             // we've passed the conditional check --> the sort order has changed
             sort_options = new_sort.sortby ? new_sort : sort_options; // setter
-            var movies = movieList.movies(sort_options);
+            var movies = movies || movieList.movies(sort_options);
             if (!movies){return false} // shortcircuit, may be waiting on ajax
             build_movie_list(movies)
             toggle_sort_button(sort_options)
@@ -141,10 +177,7 @@ function moviePresenter(element, options) {
     function trigger_search(e) {
       if (e.which == 13) {
         var search_str = $(this).val()
-        $.get('/api/autocomplete.json', {search: search_str})
-         .done(function(res){
-           build_movie_list(JSON.parse(res))
-         })
+        self.render_movies({'sortby': 'search', 'filter': search_str})
       }
     }
 
