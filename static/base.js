@@ -177,9 +177,13 @@ function moviePresenter(element, options) {
       $load_spinner.hide()
     }
 
+    function show_details() {
+      $(this).find('div#more-details').toggle()
+    }
+
     function build_movie_list(movies) {
       var listings = movies.map(function(movie, _){
-            return $(riot.render(template, movie))
+            return $(riot.render(template, movie)).on('mouseenter mouseleave',show_details)
           })
       add(listings)
     }
