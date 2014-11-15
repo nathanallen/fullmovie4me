@@ -2,10 +2,25 @@
 
 function Backend(model) {
     var self = this,
-        movieList = model
+        movieList = model,
+        unique_urls = "";
       
     self.movies = [];
     self.latest_listing_ts = 0;
+
+    function dedup(new_movies) {
+      unique_urls = unique_urls || self.movies.map(function(m){return m.youtube_url}).join("")
+      var i = new_movies.length
+      while (i--) {
+        var new_movie = new_movies[i]
+        var new_url = new_movie.youtube_url
+        if (unique_urls.indexOf(new_url) == -1) {
+          unique_urls += new_url
+          self.movies.push(new_movie)
+        }
+      }
+      return self.movies
+    }
 
     self.fetch_movies = function(cb, force, after_this_ts) {
         movieList.trigger('loading...')
@@ -19,7 +34,7 @@ function Backend(model) {
                   if (cb) { cb(false) }
                   return false
               }
-              self.movies = self.movies.concat( new_movies )
+              self.movies = dedup(new_movies)
               self.latest_listing_ts = new_movies[0]['listing_ts'];
               movieList.trigger('done-loaded')
               if (cb) { cb(self.movies) }
@@ -40,8 +55,8 @@ function Backend(model) {
                   // if (cb) { cb(false) } ?
                   return false
               }
-              self.movies = self.movies.concat( new_movies )
-              self.latest_listing_ts = new_movies[0]['listing_ts'];
+              self.movies = dedup(new_movies)
+              // self.latest_listing_ts = new_movies[0]['listing_ts'];
               movieList.trigger('done-loaded')
               if (cb) { cb(new_movies) }
           })
