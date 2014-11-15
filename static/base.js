@@ -37,7 +37,7 @@ function Backend(model) {
               if (!new_movies.length){
                   console.log('search found nothing new');
                   movieList.trigger('done-loaded')
-                  if (cb) { cb(false) }
+                  // if (cb) { cb(false) } ?
                   return false
               }
               self.movies = self.movies.concat( new_movies )
@@ -64,8 +64,8 @@ function MovieList() {
           new_movies({'sortby': 'listing_ts', 'direction': 'desc'})
           return false
         }
-        if (sort_options.sortby == 'search') {
-          search_movies({'sortby': 'filter', 'filter': sort_options.filter})
+        if (sort_options.sortby == 'api_search') {
+          search_movies(sort_options)
           return false
         }
         return sorted_movies(sort_options)
@@ -80,6 +80,7 @@ function MovieList() {
     }
 
     function search_movies(sort_options) {
+      // api search
        backend.search_movies(function(movies) {
          self.trigger('render', sort_options, movies)
        }, sort_options.filter)
@@ -91,14 +92,28 @@ function MovieList() {
       })
     }
 
+    function filtered_movies(sort_options) {
+      var field_name = sort_options.sortby;
+      var filtered_movies = [];
+      if (field_name == "search") {
+        var i = movies.length
+        var search = sort_options.filter.toLowerCase()
+        while (i--) {
+          var this_movie = movies[i]
+          if (this_movie.title.toLowerCase().indexOf(search) >= 0) {
+            filtered_movies.push(this_movie)
+          }
+        }
+      } else {
+        filtered_movies = movies;
+      }
+      return filtered_movies
+    }
+
     function sorted_movies(sort_options) {
       var field_name = sort_options.sortby;
       if (!field_name) {return movies};
-      if (field_name == "filter") {
-        // not implimented
-        return movies
-      }
-
+      movies = filtered_movies(sort_options)
       movies.sort(function(a,b){
           if (!(a[field_name])) return -1
           if (!(b[field_name])) return 1
@@ -128,7 +143,7 @@ function moviePresenter(element, options) {
 
     self.render_movies = function(new_sort, movies) {
       // Beware infinite request loop! Do not change sort order in response otherwise it will re-request on render.
-        if (new_sort.sortby == 'refresh' || sort_options.direction !== new_sort.direction || sort_options.sortby !== new_sort.sortby){
+        if (movies && movies.length || new_sort.sortby == 'refresh' || new_sort.sortby == 'search' || new_sort.sortby == 'api_search' || sort_options.direction !== new_sort.direction || sort_options.sortby !== new_sort.sortby){
             // we've passed the conditional check --> the sort order has changed
             sort_options = new_sort.sortby ? new_sort : sort_options; // setter
             var movies = movies || movieList.movies(sort_options);
@@ -175,14 +190,16 @@ function moviePresenter(element, options) {
     }
 
     function trigger_search(e) {
-      if (e.which == 13) {
-        var search_str = $(this).val()
-        self.render_movies({'sortby': 'search', 'filter': search_str})
+      var search_str = $(this).val()
+      if (e.which == 13) { // i.e. only query api on Enter.
+        self.render_movies({'sortby': 'api_search', 'filter': search_str})
+        return false
       }
+      self.render_movies({'sortby': 'search', 'filter': search_str})
     }
 
     $control.on("click", "button", toggle_sort);
-    $search.on("keypress", trigger_search)
+    $search.on("keyup", trigger_search)
     movieList.on('render', self.render_movies)
     movieList.on('loading...', show_spinner)
     movieList.on('done-loaded', remove_spinner)
