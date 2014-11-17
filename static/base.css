@@ -18,6 +18,7 @@ section#movie-list {
   -webkit-columns: 300px 3;
    -moz-columns: 300px 3;
         columns: 300px 3;
+  column-fill: auto;
 }
 
 .movie-item {
@@ -26,6 +27,13 @@ section#movie-list {
   border-radius: 10px;
   padding: .5em;
   margin-bottom: 1px;
+
+  /*stop items from spilling over into multiple columns*/
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  -moz-column-break-inside: avoid;
+  -ms-column-break-inside: avoid;
+  -o-column-break-inside: avoid;
 }
 
 .movie-item a {
