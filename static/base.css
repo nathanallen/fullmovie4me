@@ -1,12 +1,23 @@
 body {
-  margin:0;
-  max-width:20em;
-  background-color: #268bd2;
+  margin:0 auto;
+  max-width:1000px;
 }
 
 h1 {
   color: #9ACD32;
   text-align: center;
+}
+
+nav input#search {
+  display:block;
+  margin: 0 auto;
+  width: 300px;
+}
+
+section#movie-list {
+  -webkit-columns: 300px 3;
+   -moz-columns: 300px 3;
+        columns: 300px 3;
 }
 
 .movie-item {
