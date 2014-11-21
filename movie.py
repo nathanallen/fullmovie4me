@@ -86,6 +86,7 @@ def movie_listings(max_pages=1, subreddits=SUBREDDITS, newest_only=True):
         break
       for movie in movies:
         yield movie
+      logservice.flush()
       if before_cursor is None: # i.e we've run out of listings
         break
       if newest_only is True:
