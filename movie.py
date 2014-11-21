@@ -142,9 +142,8 @@ def parsed_movie_listing(listing):
 def parse_title_and_year(post_title):
   if post_title == None or post_title == '':
     return None, None
-  match = re.search(r'([^\(]*?) \((\d{4})\).?', post_title)
+  match = re.search(r'^(.+) .*\((\d{4})\)', post_title)
   # TODO: capture "Season 1 / Episode 2" info
-  # TODO: "The Purge (I) (2013)" --> "I)""
   if not match:
     return None, None
   try:
