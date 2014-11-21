@@ -142,7 +142,7 @@ def parsed_movie_listing(listing):
 def parse_title_and_year(post_title):
   if post_title == None or post_title == '':
     return None, None
-  match = re.search(r'^(.+) .*\((\d{4})\)', post_title)
+  match = re.search(r'^(.+).*?\((\d{4})\)', post_title)
   # TODO: capture "Season 1 / Episode 2" info
   if not match:
     return None, None
@@ -150,7 +150,7 @@ def parse_title_and_year(post_title):
     movie_title, movie_year = match.group(1, 2)
   except:
     return None, None
-  return movie_title, int(movie_year)
+  return movie_title.strip(), int(movie_year)
 
 #
 # ROTTEN TOMATOES API
