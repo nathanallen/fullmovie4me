@@ -159,7 +159,7 @@ def parse_title_and_year(post_title):
 def build_rotten_api_request_url(title, resource='movies'):
   ROTTEN_API_KEY = os.environ['ROTTEN_API_KEY']
   request_url = "http://api.rottentomatoes.com/api/public/v1.0/" + resource + ".json"
-  title = re.sub(r'[^a-zA-Z0-9 ]', '', title).strip()
+  title = re.sub('&amp;', '&', title)
   request_url += "?q=" + urllib2.quote(title)
   request_url += "&page_limit=5&page=1"
   request_url += "&apikey=" + ROTTEN_API_KEY
