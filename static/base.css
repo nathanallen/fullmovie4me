@@ -8,10 +8,15 @@ h1 {
   text-align: center;
 }
 
+nav {
+  margin-bottom: 3px;
+}
+
 nav input#search {
   display:block;
-  margin: 0 auto;
-  width: 300px;
+  margin: 1em auto;
+  width: 400px;
+  font-size: 1.5em;
 }
 
 section#movie-list {
