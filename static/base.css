@@ -45,10 +45,6 @@ button {
   cursor: pointer;
 }
 
-button#refresh {
-  position:absolute;
-}
-
 #load-spinner {
   display: block;
   margin: 0 auto;
