@@ -22,7 +22,7 @@ class Movie(ndb.Model):
   # title, year, audience_rating, critics_rating, youtube_url
 
   def put(self, **kwargs):
-    self.title_tags = self.title.lower().split()
+    self.title_tags = re.sub(r'[^a-z0-9 ]', " ", self.title.lower()).split()
     super(Movie, self).put(**kwargs)
     return self
 
